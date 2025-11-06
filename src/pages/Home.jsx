@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom";
 const Home = () => {
   return (
     <>
+      {/* 1. Sección Hero - Ya tiene min-height: 100vh en el CSS */}
       <section className="hero-section text-dark d-flex align-items-center position-relative overflow-hidden">
         <div className="hero-gradient"></div>
         <div className="hero-particles"></div>
@@ -147,8 +148,8 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* Sección de Propósito - Diseño Mejorado */}
-      <section className="purpose-section py-5">
+      {/* Sección de Propósito - AÑADIDO: 'app-section' y 'd-flex align-items-center' */}
+      <section className="purpose-section app-section d-flex align-items-center">
         <Container className="py-5">
           <div className="text-center mb-5">
             <span className="section-label">Nuestro Propósito</span>
@@ -235,8 +236,8 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* Sección de Características - Rediseñada */}
-      <section className="features-section py-5">
+      {/* Sección de Características - AÑADIDO: 'app-section' y 'd-flex align-items-center' */}
+      <section className="features-section app-section d-flex align-items-center">
         <Container className="py-5">
           <div className="text-center mb-5">
             <span className="section-label light">Características</span>
@@ -308,9 +309,8 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* CTA Final */}
-      <section className="cta-section py-5 text-white text-center">
-        <div className="cta-decoration-top"></div>
+      {/* CTA Final - AÑADIDO: 'app-section' y 'd-flex align-items-center' */}
+      <section className="cta-section app-section d-flex align-items-center text-white text-center">
         <Container className="py-5">
           <div className="cta-content">
             <div className="cta-icon-wrapper mb-4">
@@ -335,7 +335,6 @@ const Home = () => {
             </Button>
           </div>
         </Container>
-        <div className="cta-decoration-bottom"></div>
       </section>
 
       <style>{`
@@ -344,6 +343,15 @@ const Home = () => {
           min-height: 100vh;
           background: #ffffff;
           position: relative;
+          overflow: hidden;
+        }
+
+        /* * NUEVO * Estilo para aplicar el alto mínimo de 100vh a todas las secciones */
+        .app-section {
+          min-height: 100vh;
+          /* Asegura que haya espacio para que el contenido no se pegue a los bordes */
+          padding-top: 5rem;
+          padding-bottom: 5rem;
         }
 
         .hero-gradient {
@@ -353,7 +361,7 @@ const Home = () => {
           right: 0;
           bottom: 0;
           background: radial-gradient(circle at 20% 50%, rgba(74, 124, 89, 0.15) 0%, transparent 50%),
-                      radial-gradient(circle at 80% 80%, rgba(95, 158, 160, 0.15) 0%, transparent 50%);
+                       radial-gradient(circle at 80% 80%, rgba(95, 158, 160, 0.15) 0%, transparent 50%);
           z-index: 1;
         }
 
@@ -617,7 +625,7 @@ const Home = () => {
         /* Purpose Section */
         .purpose-section {
           background: #ffffff;
-          padding: 4rem 0;
+          /* Eliminado padding: 4rem 0; Se controla con .app-section y .py-5 en Container */
         }
 
         .section-label {
@@ -740,6 +748,7 @@ const Home = () => {
           background: #ffffff;
           position: relative;
           overflow: hidden;
+          /* Eliminado padding: 4rem 0; Se controla con .app-section y .py-5 en Container */
         }
 
         .features-section::before {
@@ -859,7 +868,7 @@ const Home = () => {
           background: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #5f9ea0 100%);
           position: relative;
           overflow: hidden;
-          margin-top: 4rem;
+          margin-top: 0; /* Ajustado */
         }
 
         .cta-section::before {
@@ -929,6 +938,11 @@ const Home = () => {
         @media (max-width: 991px) {
           .hero-section {
             min-height: auto;
+          }
+
+          /* Mantenemos el comportamiento de auto en pantallas pequeñas para evitar el recorte de contenido */
+          .app-section {
+             min-height: auto;
           }
 
           .phone-mockup {
