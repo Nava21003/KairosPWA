@@ -1,0 +1,10 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\KairosAPI",
+    "\\KairosAPI\\Controllers",
+    "\\KairosAPI\\Models"
+  ],
+  "SelectedNode": "\\KairosAPI\\Controllers\\TokensController.cs",
+  "PreviewInSolutionExplorer": false
+}
