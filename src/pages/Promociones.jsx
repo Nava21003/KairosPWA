@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { Container, Card, Button, Table } from "react-bootstrap";
 import {
-  MapPin,
+  Tag,
   Plus,
   Pencil,
   Trash2,
-  Pin,
   Menu,
+  Clock,
+  Calendar,
   X,
-  Check,
 } from "lucide-react";
 
 const kairosTheme = {
@@ -20,30 +20,42 @@ const kairosTheme = {
   textDark: "#343a40",
 };
 
-const mockData = [
+const mockPromociones = [
   {
-    id: 1,
-    name: "Parque Central",
-    category: "Naturaleza",
-    active: true,
-    lat: 21.1211,
-    lng: -101.6825,
+    id: 101,
+    titulo: "2x1 en Café Especial",
+    lugar: "Cafetería La Nube",
+    socio: "Grupo Nube S.A.",
+    fechaInicio: "2024-11-01",
+    fechaFin: "2024-11-30",
+    estatus: true,
   },
   {
-    id: 2,
-    name: "Cafetería La Nube",
-    category: "Comercio",
-    active: true,
-    lat: 21.1231,
-    lng: -101.684,
+    id: 102,
+    titulo: "15% Dto. en Hospedaje",
+    lugar: "Hotel Vista Hermosa",
+    socio: "Viajes Premium",
+    fechaInicio: "2024-12-01",
+    fechaFin: "2024-12-31",
+    estatus: true,
   },
   {
-    id: 3,
-    name: "Mirador del Sol",
-    category: "Turismo",
-    active: false,
-    lat: 21.1199,
-    lng: -101.6799,
+    id: 103,
+    titulo: "Entrada Gratuita al Parque",
+    lugar: "Parque Central",
+    socio: "Ayuntamiento Local",
+    fechaInicio: "2024-09-15",
+    fechaFin: "2024-10-15",
+    estatus: false,
+  },
+  {
+    id: 104,
+    titulo: "Postre Gratis al Consumir",
+    lugar: "Restaurante El Faro",
+    socio: "Chef's Guild",
+    fechaInicio: "2024-11-20",
+    fechaFin: "2024-11-27",
+    estatus: true,
   },
 ];
 
@@ -72,10 +84,10 @@ const MessageBox = ({ message }) => {
   );
 };
 
-const GestionPOIs = () => {
+const GestionPromociones = () => {
   const toggleSidebar = () => console.log("Sidebar toggle simulated.");
 
-  const [pois, setPois] = useState(mockData);
+  const [promociones, setPromociones] = useState(mockPromociones);
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
 
@@ -85,7 +97,11 @@ const GestionPOIs = () => {
   };
 
   const handleEdit = (id) => {
-    showMessage(`Abriendo modal de edición para POI ${id}`, "info");
+    showMessage(`Abriendo modal de edición para Promoción ${id}`, "info");
+  };
+
+  const handleCreate = () => {
+    showMessage(`Abriendo modal para crear Nueva Promoción`, "success");
   };
 
   const confirmDelete = (id) => {
@@ -94,27 +110,23 @@ const GestionPOIs = () => {
 
   const executeDelete = () => {
     const idToDelete = confirmingId;
-    setPois(pois.filter((p) => p.id !== idToDelete));
-    showMessage(`POI ${idToDelete} eliminado con éxito.`, "danger");
+    setPromociones(promociones.filter((p) => p.id !== idToDelete));
+    showMessage(`Promoción ${idToDelete} eliminada con éxito.`, "danger");
     setConfirmingId(null);
   };
 
   const cancelDelete = () => {
-    showMessage(`Eliminación de POI ${confirmingId} cancelada.`, "info");
+    showMessage(`Eliminación de Promoción ${confirmingId} cancelada.`, "info");
     setConfirmingId(null);
   };
 
-  const handleViewMap = (lat, lng) =>
-    window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
-
-  const handleCreate = () => {
-    showMessage(`Abriendo modal para crear Nuevo POI`, "success");
+  const formatDate = (dateString) => {
+    const options = { year: "numeric", month: "short", day: "numeric" };
+    return new Date(dateString).toLocaleDateString("es-ES", options);
   };
 
   return (
     <Container fluid style={{ padding: "0px" }}>
-      <MessageBox message={message} />
-
       <style>{`
         /* Estilos de Contenedor General */
         body {
@@ -129,7 +141,7 @@ const GestionPOIs = () => {
         }
 
         /* Estilos del Header */
-        .header-pois {
+        .header-promociones {
           background: linear-gradient(145deg, ${kairosTheme.secondaryColor}, ${kairosTheme.primaryColor});
           padding: 35px;
           border-radius: 14px;
@@ -142,14 +154,14 @@ const GestionPOIs = () => {
           border: 1px solid #dee2e6;
         }
 
-        .header-pois-title {
+        .header-promociones-title {
           font-size: 2.2rem;
           font-weight: 800;
           margin-left: 15px;
           display: flex;
           align-items: center;
         }
-
+        
         /* Estilos de la Tabla */
         .table-container {
             background-color: ${kairosTheme.secondaryColor};
@@ -158,6 +170,7 @@ const GestionPOIs = () => {
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
+        /* Estilos para el encabezado de la tabla (simulando table-light) */
         .table thead th {
           background-color: ${kairosTheme.primaryColor};
           color: ${kairosTheme.textDark} !important;
@@ -167,12 +180,14 @@ const GestionPOIs = () => {
           border-bottom: 2px solid #dee2e6;
         }
         
+        /* Estilos para las filas de la tabla */
         .table tbody td {
           padding: 14px 18px !important;
           font-size: 1rem;
-          color: ${kairosTheme.textDark} !important;
+          color: ${kairosTheme.textDark} !important; /* Asegura el texto oscuro en las celdas */
         }
         
+        /* Filas rayadas y hover para tema claro */
         .table-striped > tbody > tr:nth-of-type(odd) > * {
             background-color: rgba(0, 0, 0, 0.03); 
         }
@@ -203,8 +218,10 @@ const GestionPOIs = () => {
         }
       `}</style>
 
+      <MessageBox message={message} />
+
       <Container fluid className="p-4 p-sm-5">
-        <div className="header-pois">
+        <div className="header-promociones">
           <div className="d-flex align-items-center">
             <Button
               variant="outline-dark"
@@ -213,8 +230,8 @@ const GestionPOIs = () => {
             >
               <Menu />
             </Button>
-            <span className="header-pois-title">
-              <MapPin className="me-2 text-info" /> Gestión de Puntos de Interés
+            <span className="header-promociones-title">
+              <Tag className="me-2 text-info" /> Gestión de Promociones
             </span>
           </div>
 
@@ -223,7 +240,7 @@ const GestionPOIs = () => {
             onClick={handleCreate}
             style={{ fontSize: "1.1rem" }}
           >
-            <Plus className="me-1" /> Nuevo POI
+            <Plus className="me-1" /> Nueva Promoción
           </Button>
         </div>
 
@@ -234,8 +251,8 @@ const GestionPOIs = () => {
           >
             <Card.Body className="d-flex justify-content-between align-items-center text-dark-contrast">
               <h5 className="mb-0">
-                ¿Estás seguro de que quieres eliminar el POI ID: {confirmingId}?
-                Esta acción es irreversible.
+                ¿Estás seguro de que quieres eliminar la promoción ID:{" "}
+                {confirmingId}? Esta acción no se puede deshacer.
               </h5>
               <div>
                 <Button
@@ -253,51 +270,46 @@ const GestionPOIs = () => {
           </Card>
         )}
 
+        {/* TABLA DE PROMOCIONES */}
         <Card className="shadow-sm border-0 table-container">
           <Card.Body className="p-0">
             <div className="table-responsive">
-              {pois.length > 0 ? (
+              {promociones.length > 0 ? (
                 <Table striped hover className="align-middle mb-0">
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Categoría</th>
+                      <th>Título</th>
+                      <th>Lugar Asociado</th>
+                      <th>Socio</th>
+                      <th>Vigencia</th>
                       <th className="text-center">Estado</th>
-                      <th className="text-center">Ubicación</th>
                       <th className="text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pois.map((p) => (
+                    {promociones.map((p) => (
                       <tr key={p.id}>
                         <td>{p.id}</td>
                         <td>
-                          <strong>{p.name}</strong>
+                          <strong>{p.titulo}</strong>
                         </td>
-                        <td>{p.category}</td>
+                        <td>{p.lugar}</td>
+                        <td>{p.socio}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <Clock className="me-2 text-warning" size={16} />
+                            <span>{formatDate(p.fechaInicio)}</span>
+                            <span className="mx-2 text-secondary">-</span>
+                            <span>{formatDate(p.fechaFin)}</span>
+                          </div>
+                        </td>
                         <td className="text-center">
                           <span
-                            className={`badge px-3 py-2 rounded-pill ${p.active ? "bg-success" : "bg-danger"}`}
+                            className={`badge px-3 py-2 rounded-pill ${p.estatus ? "bg-success" : "bg-danger"}`}
                           >
-                            {p.active ? (
-                              <>
-                                <Check size={14} className="me-1" /> Activo
-                              </>
-                            ) : (
-                              "Inactivo"
-                            )}
+                            {p.estatus ? "Activa" : "Inactiva"}
                           </span>
-                        </td>
-                        <td className="text-center">
-                          <Button
-                            size="sm"
-                            variant="outline-primary"
-                            onClick={() => handleViewMap(p.lat, p.lng)}
-                            disabled={!!confirmingId}
-                          >
-                            <Pin size={16} /> Ver Mapa
-                          </Button>
                         </td>
                         <td className="text-center">
                           <Button
@@ -328,8 +340,8 @@ const GestionPOIs = () => {
                 </Table>
               ) : (
                 <div className="text-center py-5 text-secondary">
-                  <MapPin size={48} className="mb-3" />
-                  <p className="lead">No hay Puntos de Interés registrados.</p>
+                  <Calendar size={48} className="mb-3" />
+                  <p className="lead">No hay promociones registradas.</p>
                 </div>
               )}
             </div>
@@ -340,4 +352,4 @@ const GestionPOIs = () => {
   );
 };
 
-export default GestionPOIs;
+export default GestionPromociones;

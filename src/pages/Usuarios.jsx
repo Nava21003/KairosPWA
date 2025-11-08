@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { Container, Card, Button, Table } from "react-bootstrap";
 import {
-  MapPin,
-  Plus,
+  Users,
+  UserPlus,
   Pencil,
   Trash2,
-  Pin,
   Menu,
+  Mail,
+  Key,
   X,
-  Check,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 const kairosTheme = {
@@ -20,30 +22,38 @@ const kairosTheme = {
   textDark: "#343a40",
 };
 
-const mockData = [
+const mockUsuarios = [
   {
     id: 1,
-    name: "Parque Central",
-    category: "Naturaleza",
-    active: true,
-    lat: 21.1211,
-    lng: -101.6825,
+    nombre: "Juan Pérez García",
+    email: "juan.perez@kairos.com",
+    rol: "Administrador",
+    ultimoAcceso: "2024-11-05 10:30",
+    estatus: true,
   },
   {
     id: 2,
-    name: "Cafetería La Nube",
-    category: "Comercio",
-    active: true,
-    lat: 21.1231,
-    lng: -101.684,
+    nombre: "María López Fernández",
+    email: "maria.lopez@kairos.com",
+    rol: "Editor de Contenido",
+    ultimoAcceso: "2024-11-04 15:45",
+    estatus: true,
   },
   {
     id: 3,
-    name: "Mirador del Sol",
-    category: "Turismo",
-    active: false,
-    lat: 21.1199,
-    lng: -101.6799,
+    nombre: "Carlos Gómez Ruiz",
+    email: "carlos.gomez@kairos.com",
+    rol: "Usuario Estándar",
+    ultimoAcceso: "2024-10-20 08:00",
+    estatus: false,
+  },
+  {
+    id: 4,
+    nombre: "Laura Torres Rivas",
+    email: "laura.torres@kairos.com",
+    rol: "Moderador",
+    ultimoAcceso: "2024-11-05 11:00",
+    estatus: true,
   },
 ];
 
@@ -72,10 +82,10 @@ const MessageBox = ({ message }) => {
   );
 };
 
-const GestionPOIs = () => {
+const GestionUsuarios = () => {
   const toggleSidebar = () => console.log("Sidebar toggle simulated.");
 
-  const [pois, setPois] = useState(mockData);
+  const [usuarios, setUsuarios] = useState(mockUsuarios);
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
 
@@ -85,7 +95,11 @@ const GestionPOIs = () => {
   };
 
   const handleEdit = (id) => {
-    showMessage(`Abriendo modal de edición para POI ${id}`, "info");
+    showMessage(`Abriendo modal de edición para Usuario ID: ${id}`, "info");
+  };
+
+  const handleCreate = () => {
+    showMessage(`Abriendo modal para crear Nuevo Usuario`, "success");
   };
 
   const confirmDelete = (id) => {
@@ -94,27 +108,33 @@ const GestionPOIs = () => {
 
   const executeDelete = () => {
     const idToDelete = confirmingId;
-    setPois(pois.filter((p) => p.id !== idToDelete));
-    showMessage(`POI ${idToDelete} eliminado con éxito.`, "danger");
+    setUsuarios(usuarios.filter((u) => u.id !== idToDelete));
+    showMessage(`Usuario ID: ${idToDelete} eliminado con éxito.`, "danger");
     setConfirmingId(null);
   };
 
   const cancelDelete = () => {
-    showMessage(`Eliminación de POI ${confirmingId} cancelada.`, "info");
+    showMessage(
+      `Eliminación de Usuario ID: ${confirmingId} cancelada.`,
+      "info"
+    );
     setConfirmingId(null);
   };
 
-  const handleViewMap = (lat, lng) =>
-    window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
-
-  const handleCreate = () => {
-    showMessage(`Abriendo modal para crear Nuevo POI`, "success");
+  const formatDateTime = (dateTimeString) => {
+    const date = new Date(dateTimeString.replace(" ", "T"));
+    const options = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+    return date.toLocaleDateString("es-ES", options);
   };
 
   return (
     <Container fluid style={{ padding: "0px" }}>
-      <MessageBox message={message} />
-
       <style>{`
         /* Estilos de Contenedor General */
         body {
@@ -129,7 +149,7 @@ const GestionPOIs = () => {
         }
 
         /* Estilos del Header */
-        .header-pois {
+        .header-usuarios {
           background: linear-gradient(145deg, ${kairosTheme.secondaryColor}, ${kairosTheme.primaryColor});
           padding: 35px;
           border-radius: 14px;
@@ -142,14 +162,14 @@ const GestionPOIs = () => {
           border: 1px solid #dee2e6;
         }
 
-        .header-pois-title {
+        .header-usuarios-title {
           font-size: 2.2rem;
           font-weight: 800;
           margin-left: 15px;
           display: flex;
           align-items: center;
         }
-
+        
         /* Estilos de la Tabla */
         .table-container {
             background-color: ${kairosTheme.secondaryColor};
@@ -158,6 +178,7 @@ const GestionPOIs = () => {
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
+        /* Estilos para el encabezado de la tabla (simulando table-light) */
         .table thead th {
           background-color: ${kairosTheme.primaryColor};
           color: ${kairosTheme.textDark} !important;
@@ -167,12 +188,14 @@ const GestionPOIs = () => {
           border-bottom: 2px solid #dee2e6;
         }
         
+        /* Estilos para las filas de la tabla */
         .table tbody td {
           padding: 14px 18px !important;
           font-size: 1rem;
-          color: ${kairosTheme.textDark} !important;
+          color: ${kairosTheme.textDark} !important; /* Asegura el texto oscuro en las celdas */
         }
         
+        /* Filas rayadas y hover para tema claro */
         .table-striped > tbody > tr:nth-of-type(odd) > * {
             background-color: rgba(0, 0, 0, 0.03); 
         }
@@ -203,8 +226,10 @@ const GestionPOIs = () => {
         }
       `}</style>
 
+      <MessageBox message={message} />
+
       <Container fluid className="p-4 p-sm-5">
-        <div className="header-pois">
+        <div className="header-usuarios">
           <div className="d-flex align-items-center">
             <Button
               variant="outline-dark"
@@ -213,8 +238,8 @@ const GestionPOIs = () => {
             >
               <Menu />
             </Button>
-            <span className="header-pois-title">
-              <MapPin className="me-2 text-info" /> Gestión de Puntos de Interés
+            <span className="header-usuarios-title">
+              <Users className="me-2 text-info" /> Gestión de Usuarios
             </span>
           </div>
 
@@ -223,7 +248,7 @@ const GestionPOIs = () => {
             onClick={handleCreate}
             style={{ fontSize: "1.1rem" }}
           >
-            <Plus className="me-1" /> Nuevo POI
+            <UserPlus className="me-1" /> Nuevo Usuario
           </Button>
         </div>
 
@@ -234,8 +259,8 @@ const GestionPOIs = () => {
           >
             <Card.Body className="d-flex justify-content-between align-items-center text-dark-contrast">
               <h5 className="mb-0">
-                ¿Estás seguro de que quieres eliminar el POI ID: {confirmingId}?
-                Esta acción es irreversible.
+                ¿Estás seguro de que quieres eliminar al Usuario ID:{" "}
+                {confirmingId}? Esta acción es irreversible.
               </h5>
               <div>
                 <Button
@@ -256,48 +281,54 @@ const GestionPOIs = () => {
         <Card className="shadow-sm border-0 table-container">
           <Card.Body className="p-0">
             <div className="table-responsive">
-              {pois.length > 0 ? (
+              {usuarios.length > 0 ? (
                 <Table striped hover className="align-middle mb-0">
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Categoría</th>
-                      <th className="text-center">Estado</th>
-                      <th className="text-center">Ubicación</th>
+                      <th>Nombre Completo</th>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th>Último Acceso</th>
+                      <th className="text-center">Estatus</th>
                       <th className="text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pois.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.id}</td>
+                    {usuarios.map((u) => (
+                      <tr key={u.id}>
+                        <td>{u.id}</td>
                         <td>
-                          <strong>{p.name}</strong>
+                          <strong>{u.nombre}</strong>
                         </td>
-                        <td>{p.category}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <Mail className="me-2 text-info" size={16} />
+                            {u.email}
+                          </div>
+                        </td>
+                        <td>{u.rol}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <Key className="me-2 text-muted" size={16} />
+                            {formatDateTime(u.ultimoAcceso)}
+                          </div>
+                        </td>
                         <td className="text-center">
                           <span
-                            className={`badge px-3 py-2 rounded-pill ${p.active ? "bg-success" : "bg-danger"}`}
+                            className={`badge px-3 py-2 rounded-pill ${u.estatus ? "bg-success" : "bg-danger"}`}
                           >
-                            {p.active ? (
+                            {u.estatus ? (
                               <>
-                                <Check size={14} className="me-1" /> Activo
+                                <CheckCircle size={14} className="me-1" />{" "}
+                                Activo
                               </>
                             ) : (
-                              "Inactivo"
+                              <>
+                                <XCircle size={14} className="me-1" /> Inactivo
+                              </>
                             )}
                           </span>
-                        </td>
-                        <td className="text-center">
-                          <Button
-                            size="sm"
-                            variant="outline-primary"
-                            onClick={() => handleViewMap(p.lat, p.lng)}
-                            disabled={!!confirmingId}
-                          >
-                            <Pin size={16} /> Ver Mapa
-                          </Button>
                         </td>
                         <td className="text-center">
                           <Button
@@ -307,7 +338,7 @@ const GestionPOIs = () => {
                               backgroundColor: kairosTheme.editButtonColor,
                               borderColor: kairosTheme.editButtonColor,
                             }}
-                            onClick={() => handleEdit(p.id)}
+                            onClick={() => handleEdit(u.id)}
                             disabled={!!confirmingId}
                           >
                             <Pencil size={16} />
@@ -316,7 +347,7 @@ const GestionPOIs = () => {
                             size="sm"
                             variant="danger"
                             className="table-action-btn"
-                            onClick={() => confirmDelete(p.id)}
+                            onClick={() => confirmDelete(u.id)}
                             disabled={!!confirmingId}
                           >
                             <Trash2 size={16} />
@@ -328,8 +359,10 @@ const GestionPOIs = () => {
                 </Table>
               ) : (
                 <div className="text-center py-5 text-secondary">
-                  <MapPin size={48} className="mb-3" />
-                  <p className="lead">No hay Puntos de Interés registrados.</p>
+                  <Users size={48} className="mb-3" />
+                  <p className="lead">
+                    No hay usuarios registrados en el sistema.
+                  </p>
                 </div>
               )}
             </div>
@@ -340,4 +373,4 @@ const GestionPOIs = () => {
   );
 };
 
-export default GestionPOIs;
+export default GestionUsuarios;

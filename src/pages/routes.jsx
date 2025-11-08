@@ -7,6 +7,9 @@ import LayoutAdmin from "../layout/LayoutAdmin";
 import Dashboard from "./Dashboard";
 import Home from "./Home";
 import GestionPOIs from "./GestionPOIs";
+import NotFoundAdmin from "./NotFoundAdmind";
+import Promociones from "./Promociones";
+import Usuarios from "./Usuarios";
 
 export const router = createBrowserRouter([
   {
@@ -33,15 +36,23 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     element: <LayoutAdmin />,
-    errorElement: <NotFound />,
+    errorElement: <NotFoundAdmin />,
     children: [
       {
         index: true,
         element: <Dashboard />,
       },
       {
-        path: "/admin/gestion",
+        path: "gestion",
         element: <GestionPOIs />,
+      },
+      {
+        path: "promociones",
+        element: <Promociones />,
+      },
+      {
+        path: "usuarios",
+        element: <Usuarios />,
       },
     ],
   },
