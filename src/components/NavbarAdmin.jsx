@@ -94,7 +94,6 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         }
       `}</style>
 
-      {/* ENCABEZADO */}
       <div>
         <div className="sidebar-header mb-4 p-3">🏛️ Kairos Admin</div>
 
@@ -119,6 +118,10 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             <FaTag className="me-2" /> Promociones
           </Nav.Link>
 
+          <Nav.Link as={NavLink} to="/admin/roles" className="nav-link-kairos">
+            <FaUsers className="me-2" /> Roles
+          </Nav.Link>
+
           <Nav.Link
             as={NavLink}
             to="/admin/usuarios"
@@ -137,7 +140,6 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         </Nav>
       </div>
 
-      {/* BOTÓN CERRAR SESIÓN PEGADO HASTA ABAJO */}
       <div className="px-3 mb-4">
         <Button className="logout-btn" onClick={handleLogout}>
           <FaSignOutAlt className="me-2" /> Cerrar Sesión

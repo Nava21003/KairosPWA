@@ -1,268 +1,942 @@
-import React, { useState } from "react";
-import { Container, Card, Button, Table } from "react-bootstrap";
+import React, { useState, useContext, useEffect } from "react";
+import {
+  Container,
+  Card,
+  Button,
+  Table,
+  Modal,
+  Form,
+  Row,
+  Col,
+  Spinner,
+  Badge,
+  InputGroup,
+  Alert,
+} from "react-bootstrap";
 import {
   Tag,
   Plus,
   Pencil,
   Trash2,
-  Menu,
   Clock,
   Calendar,
   X,
+  CheckCircle,
+  XCircle,
+  Hash,
+  Save,
+  Search,
+  Filter,
+  MapPin,
+  Building,
+  RefreshCw,
 } from "lucide-react";
 
-const kairosTheme = {
-  primaryColor: "#f8f9fa",
-  secondaryColor: "#ffffff",
-  accentColor: "#4ecca3",
-  editButtonColor: "#17a2b8",
-  dangerColor: "#dc3545",
-  textDark: "#343a40",
-};
+import PromocionesContext from "../Context/Promociones/PromocionesContext";
+import PromocionesState from "../Context/Promociones/PromocionesState";
 
-const mockPromociones = [
-  {
-    id: 101,
-    titulo: "2x1 en Café Especial",
-    lugar: "Cafetería La Nube",
-    socio: "Grupo Nube S.A.",
-    fechaInicio: "2024-11-01",
-    fechaFin: "2024-11-30",
-    estatus: true,
-  },
-  {
-    id: 102,
-    titulo: "15% Dto. en Hospedaje",
-    lugar: "Hotel Vista Hermosa",
-    socio: "Viajes Premium",
-    fechaInicio: "2024-12-01",
-    fechaFin: "2024-12-31",
-    estatus: true,
-  },
-  {
-    id: 103,
-    titulo: "Entrada Gratuita al Parque",
-    lugar: "Parque Central",
-    socio: "Ayuntamiento Local",
-    fechaInicio: "2024-09-15",
-    fechaFin: "2024-10-15",
-    estatus: false,
-  },
-  {
-    id: 104,
-    titulo: "Postre Gratis al Consumir",
-    lugar: "Restaurante El Faro",
-    socio: "Chef's Guild",
-    fechaInicio: "2024-11-20",
-    fechaFin: "2024-11-27",
-    estatus: true,
-  },
-];
+const kairosTheme = {
+  primary: "#4ecca3",
+  secondary: "#6c757d",
+  success: "#28a745",
+  danger: "#e74c3c",
+  warning: "#f39c12",
+  info: "#3498db",
+  light: "#f8f9fa",
+  dark: "#2c3e50",
+  white: "#ffffff",
+  cardBg: "#ffffff",
+  bodyBg: "#f4f6f9",
+};
 
 const MessageBox = ({ message }) => {
   if (!message) return null;
 
-  const baseStyle = {
-    position: "fixed",
-    top: "20px",
-    right: "20px",
-    zIndex: 1000,
-    padding: "1rem",
-    borderRadius: "0.5rem",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-    color: "#fff",
-    fontWeight: 600,
-    transition: "opacity 0.3s",
+  const iconMap = {
+    success: <CheckCircle size={20} />,
+    danger: <XCircle size={20} />,
+    info: <Tag size={20} />,
   };
 
-  let bgColor = kairosTheme.editButtonColor;
-  if (message.type === "success") bgColor = "#28a745";
-  if (message.type === "danger") bgColor = kairosTheme.dangerColor;
+  const colorMap = {
+    success: kairosTheme.success,
+    danger: kairosTheme.danger,
+    info: kairosTheme.info,
+  };
 
   return (
-    <div style={{ ...baseStyle, backgroundColor: bgColor }}>{message.text}</div>
+    <div
+      style={{
+        position: "fixed",
+        top: "20px",
+        right: "20px",
+        zIndex: 1050,
+        backgroundColor: colorMap[message.type] || kairosTheme.info,
+        color: "#fff",
+        padding: "1rem 1.5rem",
+        borderRadius: "12px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        fontWeight: 600,
+        animation: "slideInRight 0.3s ease-out",
+        minWidth: "300px",
+      }}
+    >
+      {iconMap[message.type]}
+      <span>{message.text}</span>
+    </div>
   );
 };
 
-const GestionPromociones = () => {
-  const toggleSidebar = () => console.log("Sidebar toggle simulated.");
+const PromocionModal = ({
+  show,
+  handleClose,
+  savePromocion,
+  promocion,
+  loading,
+}) => {
+  const isEditing = promocion !== null;
 
-  const [promociones, setPromociones] = useState(mockPromociones);
+  const initialFormData = {
+    titulo: "",
+    descripcion: "",
+    idLugar: "",
+    idSocio: "",
+    fechaInicio: "",
+    fechaFin: "",
+    estatus: true,
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
+
+  useEffect(() => {
+    if (promocion && show) {
+      setFormData({
+        idPromocion: promocion.idPromocion,
+        titulo: promocion.titulo || "",
+        descripcion: promocion.descripcion || "",
+        idLugar: promocion.idLugar || "",
+        idSocio: promocion.idSocio || "",
+        fechaInicio: promocion.fechaInicio
+          ? promocion.fechaInicio.split("T")[0]
+          : "",
+        fechaFin: promocion.fechaFin ? promocion.fechaFin.split("T")[0] : "",
+        estatus: promocion.estatus ?? true,
+      });
+    } else if (!show) {
+      setFormData(initialFormData);
+      setFormErrors({});
+    }
+  }, [promocion, show]);
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.titulo.trim()) {
+      errors.titulo = "El título es requerido";
+    }
+
+    if (!formData.idLugar) {
+      errors.idLugar = "Debe seleccionar un lugar";
+    }
+
+    if (!formData.fechaInicio) {
+      errors.fechaInicio = "La fecha de inicio es requerida";
+    }
+
+    if (!formData.fechaFin) {
+      errors.fechaFin = "La fecha de fin es requerida";
+    } else if (formData.fechaInicio && formData.fechaFin) {
+      const startDate = new Date(formData.fechaInicio);
+      const endDate = new Date(formData.fechaFin);
+      if (endDate <= startDate) {
+        errors.fechaFin =
+          "La fecha de fin debe ser posterior a la fecha de inicio";
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const dataToSend = {
+      ...formData,
+      idLugar: parseInt(formData.idLugar),
+      idSocio: formData.idSocio ? parseInt(formData.idSocio) : null,
+    };
+
+    savePromocion(dataToSend, isEditing);
+  };
+
+  return (
+    <Modal show={show} onHide={handleClose} centered size="lg">
+      <Modal.Header
+        closeButton
+        style={{
+          borderBottom: `3px solid ${kairosTheme.primary}`,
+          backgroundColor: kairosTheme.light,
+        }}
+      >
+        <Modal.Title className="d-flex align-items-center fw-bold">
+          {isEditing ? (
+            <>
+              <Pencil className="me-2" style={{ color: kairosTheme.info }} />
+              Editar Promoción
+            </>
+          ) : (
+            <>
+              <Plus className="me-2" style={{ color: kairosTheme.primary }} />
+              Nueva Promoción
+            </>
+          )}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
+        <Form onSubmit={handleSubmit}>
+          <Row className="mb-3">
+            <Form.Group as={Col} md={12}>
+              <Form.Label className="fw-semibold">
+                <Tag size={16} className="me-1" /> Título *
+              </Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ingresa el título de la promoción"
+                name="titulo"
+                value={formData.titulo}
+                onChange={handleChange}
+                isInvalid={!!formErrors.titulo}
+                required
+                style={{ borderRadius: "8px", padding: "0.625rem" }}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.titulo}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-semibold">
+              <Building size={16} className="me-1" /> Descripción
+            </Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Describe la promoción..."
+              name="descripcion"
+              value={formData.descripcion}
+              onChange={handleChange}
+              style={{ borderRadius: "8px", padding: "0.625rem" }}
+            />
+          </Form.Group>
+
+          <Row className="mb-3">
+            <Form.Group as={Col} md={6}>
+              <Form.Label className="fw-semibold">
+                <MapPin size={16} className="me-1" /> ID Lugar *
+              </Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="ID del lugar"
+                name="idLugar"
+                value={formData.idLugar}
+                onChange={handleChange}
+                isInvalid={!!formErrors.idLugar}
+                required
+                style={{ borderRadius: "8px", padding: "0.625rem" }}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.idLugar}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group as={Col} md={6}>
+              <Form.Label className="fw-semibold">
+                <Building size={16} className="me-1" /> ID Socio
+              </Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="ID del socio (opcional)"
+                name="idSocio"
+                value={formData.idSocio}
+                onChange={handleChange}
+                style={{ borderRadius: "8px", padding: "0.625rem" }}
+              />
+            </Form.Group>
+          </Row>
+
+          <Row className="mb-3">
+            <Form.Group as={Col} md={6}>
+              <Form.Label className="fw-semibold">
+                <Calendar size={16} className="me-1" /> Fecha Inicio *
+              </Form.Label>
+              <Form.Control
+                type="date"
+                name="fechaInicio"
+                value={formData.fechaInicio}
+                onChange={handleChange}
+                isInvalid={!!formErrors.fechaInicio}
+                required
+                style={{ borderRadius: "8px", padding: "0.625rem" }}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.fechaInicio}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group as={Col} md={6}>
+              <Form.Label className="fw-semibold">
+                <Calendar size={16} className="me-1" /> Fecha Fin *
+              </Form.Label>
+              <Form.Control
+                type="date"
+                name="fechaFin"
+                value={formData.fechaFin}
+                onChange={handleChange}
+                isInvalid={!!formErrors.fechaFin}
+                required
+                style={{ borderRadius: "8px", padding: "0.625rem" }}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.fechaFin}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="switch"
+              name="estatus"
+              id="estatus-switch"
+              label={
+                <span className="d-flex align-items-center fw-semibold">
+                  <Tag
+                    size={18}
+                    className="me-2"
+                    style={{
+                      color: formData.estatus
+                        ? kairosTheme.success
+                        : kairosTheme.danger,
+                    }}
+                  />
+                  {formData.estatus ? "Promoción Activa" : "Promoción Inactiva"}
+                </span>
+              }
+              checked={formData.estatus}
+              onChange={handleChange}
+              style={{ fontSize: "1.05rem" }}
+            />
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer style={{ backgroundColor: kairosTheme.light }}>
+        <Button
+          variant="outline-secondary"
+          onClick={handleClose}
+          disabled={loading}
+          style={{ borderRadius: "8px", padding: "0.5rem 1.25rem" }}
+        >
+          <X className="me-1" size={16} /> Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            backgroundColor: kairosTheme.primary,
+            border: "none",
+            borderRadius: "8px",
+            padding: "0.5rem 1.5rem",
+            fontWeight: 600,
+          }}
+        >
+          {loading ? (
+            <Spinner animation="border" size="sm" className="me-2" />
+          ) : (
+            <Save className="me-2" size={16} />
+          )}
+          {isEditing ? "Guardar Cambios" : "Crear Promoción"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+const GestionPromocionesContent = () => {
+  const {
+    promociones = [],
+    getPromociones,
+    createPromocion,
+    updatePromocion,
+    deletePromocion,
+  } = useContext(PromocionesContext);
+
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [promocionToEdit, setPromocionToEdit] = useState(null);
+  const [loading, setLoading] = useState({
+    promociones: false,
+    action: false,
+  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterEstatus, setFilterEstatus] = useState("all");
+  const [error, setError] = useState(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // SOLUCIÓN: Remover useCallback y simplificar la función
+  const loadPromociones = async () => {
+    if (loading.promociones) return;
+
+    setLoading((prev) => ({ ...prev, promociones: true }));
+    setError(null);
+
+    try {
+      console.log("🔄 Iniciando carga de promociones...");
+      await getPromociones();
+      console.log("✅ Carga de promociones completada");
+      setDataLoaded(true);
+    } catch (error) {
+      console.error("❌ Error cargando promociones:", error);
+      setError(
+        "No se pudieron cargar las promociones. Verifica que la API esté ejecutándose en http://localhost:5219"
+      );
+      showMessage("Error al cargar las promociones", "danger");
+    } finally {
+      setLoading((prev) => ({ ...prev, promociones: false }));
+    }
+  };
+
+  // SOLUCIÓN: useEffect simplificado - solo se ejecuta una vez al montar
+  useEffect(() => {
+    console.log("🎯 Componente montado, cargando promociones...");
+    loadPromociones();
+  }, []); // Array de dependencias vacío - solo se ejecuta una vez
 
   const showMessage = (text, type = "info") => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
   };
 
-  const handleEdit = (id) => {
-    showMessage(`Abriendo modal de edición para Promoción ${id}`, "info");
+  const handleRefresh = () => {
+    console.log("🔄 Recargando promociones manualmente...");
+    loadPromociones();
   };
 
   const handleCreate = () => {
-    showMessage(`Abriendo modal para crear Nueva Promoción`, "success");
+    setPromocionToEdit(null);
+    setShowModal(true);
   };
 
-  const confirmDelete = (id) => {
-    setConfirmingId(id);
+  const handleEdit = (id) => {
+    const promocion = promociones.find((p) => p.idPromocion === id);
+    if (promocion) {
+      setPromocionToEdit(promocion);
+      setShowModal(true);
+    } else {
+      showMessage("Promoción no encontrada para editar", "danger");
+    }
   };
 
-  const executeDelete = () => {
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setPromocionToEdit(null);
+  };
+
+  const savePromocion = async (promocionData, isEditing) => {
+    setLoading((prev) => ({ ...prev, action: true }));
+    try {
+      if (isEditing) {
+        await updatePromocion(promocionData.idPromocion, promocionData);
+        showMessage(`Promoción actualizada exitosamente`, "success");
+      } else {
+        await createPromocion(promocionData);
+        showMessage(`Promoción creada exitosamente`, "success");
+      }
+      handleCloseModal();
+      await loadPromociones(); // Usar la función directa en lugar de la memoizada
+    } catch (error) {
+      showMessage(
+        `Error al ${isEditing ? "actualizar" : "crear"} promoción: ${error.message || "Error desconocido"}`,
+        "danger"
+      );
+      console.error("Error en la operación de promoción:", error);
+    } finally {
+      setLoading((prev) => ({ ...prev, action: false }));
+    }
+  };
+
+  const executeDelete = async () => {
     const idToDelete = confirmingId;
-    setPromociones(promociones.filter((p) => p.id !== idToDelete));
-    showMessage(`Promoción ${idToDelete} eliminada con éxito.`, "danger");
-    setConfirmingId(null);
+    setLoading((prev) => ({ ...prev, action: true }));
+    try {
+      await deletePromocion(idToDelete);
+      showMessage(`Promoción eliminada exitosamente`, "success");
+      await loadPromociones(); // Usar la función directa en lugar de la memoizada
+    } catch (error) {
+      showMessage(
+        `Error al eliminar promoción: ${error.message || "Error desconocido"}`,
+        "danger"
+      );
+      console.error("Error en la eliminación:", error);
+    } finally {
+      setConfirmingId(null);
+      setLoading((prev) => ({ ...prev, action: false }));
+    }
   };
 
-  const cancelDelete = () => {
-    showMessage(`Eliminación de Promoción ${confirmingId} cancelada.`, "info");
-    setConfirmingId(null);
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "N/A";
+
+    try {
+      const date = new Date(dateTimeString);
+      if (isNaN(date.getTime())) return "Fecha Inválida";
+
+      const options = {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      };
+      return date.toLocaleDateString("es-ES", options);
+    } catch (error) {
+      console.error("Error formateando fecha:", error);
+      return "Fecha Inválida";
+    }
   };
 
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" };
-    return new Date(dateString).toLocaleDateString("es-ES", options);
-  };
+  const currentPromociones = Array.isArray(promociones) ? promociones : [];
+  console.log("📊 Promociones en estado:", currentPromociones);
+
+  const filteredPromociones = currentPromociones.filter((promocion) => {
+    const titulo = (promocion.titulo || "").toLowerCase();
+    const descripcion = (promocion.descripcion || "").toLowerCase();
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      titulo.includes(search) || descripcion.includes(search);
+    const matchesEstatus =
+      filterEstatus === "all" ||
+      (filterEstatus === "active" && promocion.estatus) ||
+      (filterEstatus === "inactive" && !promocion.estatus);
+
+    return matchesSearch && matchesEstatus;
+  });
+
+  const isLoading = loading.promociones && !dataLoaded;
 
   return (
-    <Container fluid style={{ padding: "0px" }}>
+    <Container
+      fluid
+      style={{
+        backgroundColor: kairosTheme.bodyBg,
+        minHeight: "100vh",
+        padding: "0",
+      }}
+    >
       <style>{`
-        /* Estilos de Contenedor General */
-        body {
-          background-color: ${kairosTheme.primaryColor}; /* Fondo muy claro */
-          color: ${kairosTheme.textDark}; /* Texto oscuro */
-          font-family: 'Inter', sans-serif;
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
         }
 
-        /* El texto claro ahora se invierte para ser oscuro donde se necesite en un tema claro */
-        .text-dark-contrast {
-          color: ${kairosTheme.textDark} !important;
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Estilos del Header */
-        .header-promociones {
-          background: linear-gradient(145deg, ${kairosTheme.secondaryColor}, ${kairosTheme.primaryColor});
-          padding: 35px;
-          border-radius: 14px;
-          margin-bottom: 30px;
-          color: ${kairosTheme.textDark}; /* Texto oscuro en el header */
-          display: flex;
+        .card-hover {
+          transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important;
+        }
+
+        .table-row-hover {
+          transition: all 0.2s ease;
+        }
+
+        .table-row-hover:hover {
+          background-color: rgba(78, 204, 163, 0.08) !important;
+        }
+
+        .btn-action {
+          transition: all 0.2s ease;
+          border: none;
+          border-radius: 8px;
+          padding: 0.5rem 0.75rem;
+          font-weight: 600;
+        }
+
+        .btn-action:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .status-badge {
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-weight: 600;
+          font-size: 0.875rem;
+          display: inline-flex;
           align-items: center;
-          justify-content: space-between;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.1); /* Sombra más sutil */
-          border: 1px solid #dee2e6;
+          gap: 0.5rem;
         }
 
-        .header-promociones-title {
-          font-size: 2.2rem;
-          font-weight: 800;
-          margin-left: 15px;
-          display: flex;
-          align-items: center;
-        }
-        
-        /* Estilos de la Tabla */
-        .table-container {
-            background-color: ${kairosTheme.secondaryColor};
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        /* Estilos para el encabezado de la tabla (simulando table-light) */
-        .table thead th {
-          background-color: ${kairosTheme.primaryColor};
-          color: ${kairosTheme.textDark} !important;
-          font-weight: 700 !important;
-          padding: 18px !important;
-          font-size: 1.05rem;
-          border-bottom: 2px solid #dee2e6;
-        }
-        
-        /* Estilos para las filas de la tabla */
-        .table tbody td {
-          padding: 14px 18px !important;
-          font-size: 1rem;
-          color: ${kairosTheme.textDark} !important; /* Asegura el texto oscuro en las celdas */
-        }
-        
-        /* Filas rayadas y hover para tema claro */
-        .table-striped > tbody > tr:nth-of-type(odd) > * {
-            background-color: rgba(0, 0, 0, 0.03); 
-        }
-        
-        .table-hover > tbody > tr:hover > * {
-            background-color: rgba(0, 0, 0, 0.08);
+        .search-input:focus {
+          border-color: ${kairosTheme.primary};
+          box-shadow: 0 0 0 0.25rem rgba(78, 204, 163, 0.25);
         }
 
-
-        .table-action-btn {
-          margin-right: 8px !important;
-          font-size: 0.95rem !important;
-          padding: 0.5rem 0.75rem !important;
-          border-radius: 0.5rem;
+        .stat-card {
+          border-left: 4px solid ${kairosTheme.primary};
+          transition: all 0.3s ease;
         }
 
-        /* Estilos de botones específicos */
-        .btn-accent {
-            background-color: ${kairosTheme.accentColor};
-            border-color: ${kairosTheme.accentColor};
-            color: #fff; /* Texto blanco en botón de acento */
-            font-weight: 600;
-        }
-        .btn-accent:hover {
-            background-color: #3cae8a;
-            border-color: #3cae8a;
-            color: #fff;
+        .stat-card:hover {
+          border-left-width: 6px;
         }
       `}</style>
 
+      <PromocionModal
+        show={showModal}
+        handleClose={handleCloseModal}
+        savePromocion={savePromocion}
+        promocion={promocionToEdit}
+        loading={loading.action}
+      />
+
       <MessageBox message={message} />
 
-      <Container fluid className="p-4 p-sm-5">
-        <div className="header-promociones">
-          <div className="d-flex align-items-center">
-            <Button
-              variant="outline-dark"
-              onClick={toggleSidebar}
-              style={{ borderRadius: "0.5rem" }}
-            >
-              <Menu />
-            </Button>
-            <span className="header-promociones-title">
-              <Tag className="me-2 text-info" /> Gestión de Promociones
-            </span>
-          </div>
-
-          <Button
-            className="btn-accent"
-            onClick={handleCreate}
-            style={{ fontSize: "1.1rem" }}
-          >
-            <Plus className="me-1" /> Nueva Promoción
-          </Button>
+      <Container fluid className="p-4">
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
+            borderRadius: "16px",
+            padding: "2rem",
+            marginBottom: "2rem",
+            boxShadow: "0 8px 24px rgba(78, 204, 163, 0.3)",
+            animation: "fadeIn 0.5s ease-out",
+          }}
+        >
+          <Row className="align-items-center">
+            <Col md={8}>
+              <div className="d-flex align-items-center text-white">
+                <Tag size={40} className="me-3" />
+                <div>
+                  <h1 className="mb-1 fw-bold" style={{ fontSize: "2rem" }}>
+                    Gestión de Promociones
+                  </h1>
+                  <p className="mb-0 opacity-90">
+                    Administra las promociones del sistema de forma eficiente
+                  </p>
+                </div>
+              </div>
+            </Col>
+            <Col md={4} className="text-md-end mt-3 mt-md-0">
+              <div className="d-flex gap-2 justify-content-end">
+                <Button
+                  onClick={handleRefresh}
+                  disabled={loading.promociones}
+                  style={{
+                    backgroundColor: kairosTheme.info,
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "0.75rem 1rem",
+                    fontWeight: 600,
+                  }}
+                  className="btn-action"
+                >
+                  <RefreshCw className="me-2" size={20} />
+                  {loading.promociones ? "Cargando..." : "Recargar"}
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={loading.promociones}
+                  style={{
+                    backgroundColor: kairosTheme.white,
+                    color: kairosTheme.primary,
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "0.75rem 1.5rem",
+                    fontWeight: 700,
+                    fontSize: "1.05rem",
+                  }}
+                  className="btn-action"
+                >
+                  <Plus className="me-2" size={20} />
+                  Nueva Promoción
+                </Button>
+              </div>
+            </Col>
+          </Row>
         </div>
+
+        {error && (
+          <Alert variant="danger" className="mb-3">
+            <Alert.Heading>Error de conexión</Alert.Heading>
+            {error}
+            <div className="mt-2">
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={handleRefresh}
+              >
+                Reintentar
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        {isLoading && (
+          <Alert variant="info" className="mb-3">
+            <Spinner animation="border" size="sm" className="me-2" />
+            Cargando datos...
+          </Alert>
+        )}
+
+        <Row className="mb-4 g-3">
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm stat-card card-hover"
+              style={{
+                borderRadius: "12px",
+                animation: "fadeIn 0.6s ease-out",
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">
+                    Total Promociones
+                  </p>
+                  <h3 className="mb-0 fw-bold">
+                    {loading.promociones ? (
+                      <Spinner animation="border" size="sm" />
+                    ) : (
+                      currentPromociones.length
+                    )}
+                  </h3>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: `${kairosTheme.primary}20`,
+                    padding: "1rem",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <Tag size={32} style={{ color: kairosTheme.primary }} />
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm stat-card card-hover"
+              style={{
+                borderRadius: "12px",
+                borderLeftColor: kairosTheme.success,
+                animation: "fadeIn 0.7s ease-out",
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">
+                    Promociones Activas
+                  </p>
+                  <h3 className="mb-0 fw-bold">
+                    {loading.promociones ? (
+                      <Spinner animation="border" size="sm" />
+                    ) : (
+                      currentPromociones.filter((p) => p.estatus).length
+                    )}
+                  </h3>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: `${kairosTheme.success}20`,
+                    padding: "1rem",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <CheckCircle
+                    size={32}
+                    style={{ color: kairosTheme.success }}
+                  />
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm stat-card card-hover"
+              style={{
+                borderRadius: "12px",
+                borderLeftColor: kairosTheme.danger,
+                animation: "fadeIn 0.8s ease-out",
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">
+                    Promociones Inactivas
+                  </p>
+                  <h3 className="mb-0 fw-bold">
+                    {loading.promociones ? (
+                      <Spinner animation="border" size="sm" />
+                    ) : (
+                      currentPromociones.filter((p) => !p.estatus).length
+                    )}
+                  </h3>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: `${kairosTheme.danger}20`,
+                    padding: "1rem",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <XCircle size={32} style={{ color: kairosTheme.danger }} />
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Card
+          className="border-0 shadow-sm mb-4 card-hover"
+          style={{ borderRadius: "12px", animation: "fadeIn 0.9s ease-out" }}
+        >
+          <Card.Body>
+            <Row className="g-3">
+              <Col md={8}>
+                <InputGroup>
+                  <InputGroup.Text
+                    style={{
+                      backgroundColor: kairosTheme.white,
+                      border: "2px solid #e0e0e0",
+                      borderRight: "none",
+                      borderRadius: "10px 0 0 10px",
+                    }}
+                  >
+                    <Search size={20} style={{ color: kairosTheme.primary }} />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="text"
+                    placeholder="Buscar por título o descripción..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                    style={{
+                      border: "2px solid #e0e0e0",
+                      borderLeft: "none",
+                      borderRadius: "0 10px 10px 0",
+                      padding: "0.625rem 1rem",
+                    }}
+                  />
+                </InputGroup>
+              </Col>
+              <Col md={4}>
+                <InputGroup>
+                  <InputGroup.Text
+                    style={{
+                      backgroundColor: kairosTheme.white,
+                      border: "2px solid #e0e0e0",
+                      borderRight: "none",
+                      borderRadius: "10px 0 0 10px",
+                    }}
+                  >
+                    <Filter size={20} style={{ color: kairosTheme.info }} />
+                  </InputGroup.Text>
+                  <Form.Select
+                    value={filterEstatus}
+                    onChange={(e) => setFilterEstatus(e.target.value)}
+                    style={{
+                      border: "2px solid #e0e0e0",
+                      borderLeft: "none",
+                      borderRadius: "0 10px 10px 0",
+                      padding: "0.625rem 1rem",
+                    }}
+                  >
+                    <option value="all">Todos los estados</option>
+                    <option value="active">Solo activas</option>
+                    <option value="inactive">Solo inactivas</option>
+                  </Form.Select>
+                </InputGroup>
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
 
         {confirmingId && (
           <Card
-            className="shadow-lg mb-4 border-danger"
-            style={{ backgroundColor: kairosTheme.secondaryColor }}
+            className="shadow-lg mb-4 border-0"
+            style={{
+              borderRadius: "12px",
+              borderLeft: `5px solid ${kairosTheme.danger}`,
+              backgroundColor: `${kairosTheme.danger}10`,
+              animation: "fadeIn 0.3s ease-out",
+            }}
           >
-            <Card.Body className="d-flex justify-content-between align-items-center text-dark-contrast">
-              <h5 className="mb-0">
-                ¿Estás seguro de que quieres eliminar la promoción ID:{" "}
-                {confirmingId}? Esta acción no se puede deshacer.
-              </h5>
-              <div>
+            <Card.Body className="d-flex justify-content-between align-items-center">
+              <div className="d-flex align-items-center">
+                <XCircle
+                  size={32}
+                  style={{ color: kairosTheme.danger }}
+                  className="me-3"
+                />
+                <div>
+                  <h5 className="mb-1 fw-bold">Confirmar Eliminación</h5>
+                  <p className="mb-0 text-muted">
+                    ¿Estás seguro de eliminar la promoción ID:{" "}
+                    <b>{confirmingId}</b>? Esta acción no se puede deshacer.
+                  </p>
+                </div>
+              </div>
+              <div className="d-flex gap-2">
                 <Button
                   variant="danger"
                   onClick={executeDelete}
-                  className="me-2"
+                  disabled={loading.action}
+                  className="btn-action"
+                  style={{ borderRadius: "8px" }}
                 >
-                  <Trash2 className="me-1" size={16} /> Sí, Eliminar
+                  <Trash2 className="me-1" size={16} /> Eliminar
                 </Button>
-                <Button variant="outline-secondary" onClick={cancelDelete}>
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setConfirmingId(null)}
+                  disabled={loading.action}
+                  className="btn-action"
+                  style={{ borderRadius: "8px" }}
+                >
                   <X className="me-1" size={16} /> Cancelar
                 </Button>
               </div>
@@ -270,85 +944,298 @@ const GestionPromociones = () => {
           </Card>
         )}
 
-        {/* TABLA DE PROMOCIONES */}
-        <Card className="shadow-sm border-0 table-container">
-          <Card.Body className="p-0">
-            <div className="table-responsive">
-              {promociones.length > 0 ? (
-                <Table striped hover className="align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Título</th>
-                      <th>Lugar Asociado</th>
-                      <th>Socio</th>
-                      <th>Vigencia</th>
-                      <th className="text-center">Estado</th>
-                      <th className="text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promociones.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.id}</td>
-                        <td>
-                          <strong>{p.titulo}</strong>
-                        </td>
-                        <td>{p.lugar}</td>
-                        <td>{p.socio}</td>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <Clock className="me-2 text-warning" size={16} />
-                            <span>{formatDate(p.fechaInicio)}</span>
-                            <span className="mx-2 text-secondary">-</span>
-                            <span>{formatDate(p.fechaFin)}</span>
+        <Card
+          className="border-0 shadow-sm"
+          style={{
+            borderRadius: "12px",
+            overflow: "hidden",
+            animation: "fadeIn 1s ease-out",
+          }}
+        >
+          <div className="table-responsive">
+            {isLoading ? (
+              <div className="text-center py-5">
+                <Spinner
+                  animation="border"
+                  style={{ color: kairosTheme.primary }}
+                  className="mb-3"
+                />
+                <p className="text-muted">Cargando promociones...</p>
+                <small className="text-muted">
+                  Si tarda mucho, verifica la conexión con el servidor
+                </small>
+              </div>
+            ) : error ? (
+              <div className="text-center py-5">
+                <XCircle
+                  size={64}
+                  style={{ color: kairosTheme.danger, opacity: 0.4 }}
+                  className="mb-3"
+                />
+                <h5 className="text-danger">Error al cargar promociones</h5>
+                <p className="text-muted">{error}</p>
+                <Button variant="primary" onClick={handleRefresh}>
+                  <RefreshCw className="me-2" size={16} />
+                  Reintentar
+                </Button>
+              </div>
+            ) : filteredPromociones.length === 0 ? (
+              <div className="text-center py-5">
+                <Tag
+                  size={64}
+                  style={{ color: kairosTheme.secondary, opacity: 0.4 }}
+                  className="mb-3"
+                />
+                <h5 className="text-muted">No se encontraron promociones</h5>
+                <p className="text-muted">
+                  {searchTerm || filterEstatus !== "all"
+                    ? "Intenta ajustar los filtros de búsqueda"
+                    : "Comienza agregando una nueva promoción"}
+                </p>
+                <Button variant="primary" onClick={handleCreate}>
+                  <Plus className="me-2" size={16} />
+                  Crear Primera Promoción
+                </Button>
+              </div>
+            ) : (
+              <Table
+                className="align-middle mb-0"
+                style={{ minWidth: "1000px" }}
+              >
+                <thead style={{ backgroundColor: kairosTheme.light }}>
+                  <tr>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <Hash size={16} className="me-1" /> ID
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <Tag size={16} className="me-1" /> Título
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <Building size={16} className="me-1" /> Descripción
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <MapPin size={16} className="me-1" /> ID Lugar
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <Building size={16} className="me-1" /> ID Socio
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                    >
+                      <Calendar size={16} className="me-1" /> Vigencia
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                      className="text-center"
+                    >
+                      Estado
+                    </th>
+                    <th
+                      style={{
+                        padding: "1rem",
+                        fontWeight: 700,
+                        color: kairosTheme.dark,
+                      }}
+                      className="text-center"
+                    >
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPromociones.map((p) => (
+                    <tr
+                      key={`promocion-${p.idPromocion}`}
+                      className="table-row-hover"
+                    >
+                      <td style={{ padding: "1rem" }}>
+                        <Badge
+                          bg="light"
+                          text="dark"
+                          style={{
+                            fontSize: "0.9rem",
+                            padding: "0.5rem 0.75rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          #{p.idPromocion}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        <div className="fw-bold">
+                          {p.titulo || "Sin título"}
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        <div className="text-muted">
+                          {p.descripcion
+                            ? p.descripcion.length > 50
+                              ? `${p.descripcion.substring(0, 50)}...`
+                              : p.descripcion
+                            : "Sin descripción"}
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        <Badge bg="secondary">#{p.idLugar}</Badge>
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        {p.idSocio ? (
+                          <Badge bg="info">#{p.idSocio}</Badge>
+                        ) : (
+                          <span className="text-muted">No asignado</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        <div className="d-flex align-items-center">
+                          <Clock className="me-2 text-warning" size={16} />
+                          <div>
+                            <div className="small text-muted">Inicio:</div>
+                            <div>{formatDateTime(p.fechaInicio)}</div>
                           </div>
-                        </td>
-                        <td className="text-center">
-                          <span
-                            className={`badge px-3 py-2 rounded-pill ${p.estatus ? "bg-success" : "bg-danger"}`}
-                          >
-                            {p.estatus ? "Activa" : "Inactiva"}
-                          </span>
-                        </td>
-                        <td className="text-center">
+                          <div className="mx-3 text-secondary">-</div>
+                          <div>
+                            <div className="small text-muted">Fin:</div>
+                            <div>{formatDateTime(p.fechaFin)}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem" }} className="text-center">
+                        <span
+                          className="status-badge"
+                          style={{
+                            backgroundColor: p.estatus
+                              ? `${kairosTheme.success}15`
+                              : `${kairosTheme.danger}15`,
+                            color: p.estatus
+                              ? kairosTheme.success
+                              : kairosTheme.danger,
+                          }}
+                        >
+                          {p.estatus ? (
+                            <>
+                              <CheckCircle size={16} /> Activa
+                            </>
+                          ) : (
+                            <>
+                              <XCircle size={16} /> Inactiva
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td style={{ padding: "1rem" }} className="text-center">
+                        <div className="d-flex gap-2 justify-content-center">
                           <Button
                             size="sm"
-                            className="table-action-btn"
+                            onClick={() => handleEdit(p.idPromocion)}
+                            disabled={!!confirmingId || loading.action}
+                            className="btn-action"
                             style={{
-                              backgroundColor: kairosTheme.editButtonColor,
-                              borderColor: kairosTheme.editButtonColor,
+                              backgroundColor: kairosTheme.info,
+                              color: kairosTheme.white,
                             }}
-                            onClick={() => handleEdit(p.id)}
-                            disabled={!!confirmingId}
+                            title="Editar promoción"
                           >
                             <Pencil size={16} />
                           </Button>
                           <Button
                             size="sm"
-                            variant="danger"
-                            className="table-action-btn"
-                            onClick={() => confirmDelete(p.id)}
-                            disabled={!!confirmingId}
+                            onClick={() => setConfirmingId(p.idPromocion)}
+                            disabled={!!confirmingId || loading.action}
+                            className="btn-action"
+                            style={{
+                              backgroundColor: kairosTheme.danger,
+                              color: kairosTheme.white,
+                            }}
+                            title="Eliminar promoción"
                           >
                             <Trash2 size={16} />
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              ) : (
-                <div className="text-center py-5 text-secondary">
-                  <Calendar size={48} className="mb-3" />
-                  <p className="lead">No hay promociones registradas.</p>
-                </div>
-              )}
-            </div>
-          </Card.Body>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </div>
+          {filteredPromociones.length > 0 && (
+            <Card.Footer
+              className="d-flex justify-content-between align-items-center"
+              style={{
+                backgroundColor: kairosTheme.light,
+                padding: "1rem 1.5rem",
+                borderTop: "1px solid #e0e0e0",
+              }}
+            >
+              <small className="text-muted fw-semibold">
+                Mostrando {filteredPromociones.length} de{" "}
+                {currentPromociones.length} promociones
+              </small>
+              <small className="text-muted">
+                {searchTerm && (
+                  <span className="me-3">
+                    <Search size={14} className="me-1" />
+                    Búsqueda activa
+                  </span>
+                )}
+                {filterEstatus !== "all" && (
+                  <span>
+                    <Filter size={14} className="me-1" />
+                    Filtro aplicado
+                  </span>
+                )}
+              </small>
+            </Card.Footer>
+          )}
         </Card>
       </Container>
     </Container>
+  );
+};
+
+const GestionPromociones = () => {
+  return (
+    <PromocionesState>
+      <GestionPromocionesContent />
+    </PromocionesState>
   );
 };
 

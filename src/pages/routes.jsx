@@ -10,6 +10,7 @@ import GestionPOIs from "./GestionPOIs";
 import NotFoundAdmin from "./NotFoundAdmind";
 import Promociones from "./Promociones";
 import Usuarios from "./Usuarios";
+import Roles from "./Roles";
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: "promociones",
         element: <Promociones />,
+      },
+      {
+        path: "roles",
+        element: <Roles />,
       },
       {
         path: "usuarios",

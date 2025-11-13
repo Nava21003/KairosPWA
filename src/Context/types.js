@@ -1,0 +1,19 @@
+// Usuarios
+export const GET_USERS = 'GET_USERS';
+export const GET_PROFILE = 'GET_PROFILE';
+export const CAMBIAR_ESTATUS = 'CAMBIAR_ESTATUS';
+
+// Roles
+export const GET_ROLES = 'GET_ROLES';
+export const CREATE_ROL = 'CREATE_ROL';
+export const UPDATE_ROL = 'UPDATE_ROL';
+export const DELETE_ROL = 'DELETE_ROL';
+
+// Promociones
+export const GET_PROMOCIONES = 'GET_PROMOCIONES';
+export const CREATE_PROMOCION = 'CREATE_PROMOCION';
+export const UPDATE_PROMOCION = 'UPDATE_PROMOCION';
+export const DELETE_PROMOCION = 'DELETE_PROMOCION';
+export const GET_PROMOCIONES_BY_LUGAR = 'GET_PROMOCIONES_BY_LUGAR';
+export const GET_PROMOCIONES_BY_SOCIO = 'GET_PROMOCIONES_BY_SOCIO';
+export const REGISTRAR_CLIC = 'REGISTRAR_CLIC';
