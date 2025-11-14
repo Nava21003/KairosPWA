@@ -405,7 +405,6 @@ const GestionPromocionesContent = () => {
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // SOLUCIÓN: Remover useCallback y simplificar la función
   const loadPromociones = async () => {
     if (loading.promociones) return;
 
@@ -415,10 +414,10 @@ const GestionPromocionesContent = () => {
     try {
       console.log("🔄 Iniciando carga de promociones...");
       await getPromociones();
-      console.log("✅ Carga de promociones completada");
+      console.log("Carga de promociones completada");
       setDataLoaded(true);
     } catch (error) {
-      console.error("❌ Error cargando promociones:", error);
+      console.error("Error cargando promociones:", error);
       setError(
         "No se pudieron cargar las promociones. Verifica que la API esté ejecutándose en http://localhost:5219"
       );
@@ -428,11 +427,10 @@ const GestionPromocionesContent = () => {
     }
   };
 
-  // SOLUCIÓN: useEffect simplificado - solo se ejecuta una vez al montar
   useEffect(() => {
     console.log("🎯 Componente montado, cargando promociones...");
     loadPromociones();
-  }, []); // Array de dependencias vacío - solo se ejecuta una vez
+  }, []);
 
   const showMessage = (text, type = "info") => {
     setMessage({ text, type });
