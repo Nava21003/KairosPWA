@@ -412,7 +412,7 @@ const GestionPromocionesContent = () => {
     setError(null);
 
     try {
-      console.log("🔄 Iniciando carga de promociones...");
+      console.log("Iniciando carga de promociones...");
       await getPromociones();
       console.log("Carga de promociones completada");
       setDataLoaded(true);
@@ -428,7 +428,7 @@ const GestionPromocionesContent = () => {
   };
 
   useEffect(() => {
-    console.log("🎯 Componente montado, cargando promociones...");
+    console.log("Componente montado, cargando promociones...");
     loadPromociones();
   }, []);
 
