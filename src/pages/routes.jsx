@@ -11,6 +11,7 @@ import NotFoundAdmin from "./NotFoundAdmind";
 import Promociones from "./Promociones";
 import Usuarios from "./Usuarios";
 import Roles from "./Roles";
+import Registro from "./Registro";
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/registro",
+        element: <Registro />,
       },
       {
         path: "/explorar",

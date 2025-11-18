@@ -1,43 +1,86 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Row, Col, Card, Form, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import AuthContext from "../Context/Auth/AuthContext";
 
 const Login = () => {
-  const mockCredentials = {
-    email: "admin",
-    password: "admin",
-  };
+  // 1. Obtener la función 'login' del AuthContext
+  const { login } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // Nuevo estado para el loading
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
+    setLoading(true);
 
-    if (
-      email === mockCredentials.email &&
-      password === mockCredentials.password
-    ) {
-      window.isAuthenticated = true;
-      navigate("/admin");
-    } else {
-      setError(
-        "Credenciales inválidas. Por favor, verifica tu correo y contraseña."
-      );
+    try {
+      // 2. Llamar a la función de la API de login
+      const response = await login({
+        correo: email,
+        contrasena: password,
+      });
+
+      // Si el login fue exitoso (el contexto ya maneja el almacenamiento del token/usuario)
+      if (response && response.success) {
+        // Redireccionar al panel de administración o dashboard
+        navigate("/admin");
+      } else {
+        // En caso de que la API devuelva éxito=false pero no lance error (poco común, pero seguro)
+        // Esto debería capturarse principalmente en el 'catch', pero es una salvaguarda.
+        setError("Error de autenticación. Intenta de nuevo.");
+      }
+    } catch (err) {
+      // 3. Manejar errores de la API (401 Unauthorized, etc.)
+      console.error("Fallo de Login en la API:", err);
+
+      // Usar el mensaje de error del backend si está disponible
+      let errorMessage =
+        "Ocurrió un error inesperado al intentar iniciar sesión.";
+
+      // Se ajusta la lógica de manejo de errores para ser más robusta
+      if (err.response) {
+        if (err.response.data && err.response.data.message) {
+          // El backend devuelve { success: false, message: "Credenciales inválidas" }
+          errorMessage = err.response.data.message;
+        } else if (err.response.data) {
+          // El backend devuelve un objeto de error genérico
+          errorMessage = JSON.stringify(err.response.data);
+        } else if (err.response.status === 401) {
+          errorMessage =
+            "Credenciales inválidas. Por favor, verifica tu correo y contraseña.";
+        } else {
+          errorMessage = `Error de servidor: ${err.response.status}`;
+        }
+      } else if (err.message) {
+        errorMessage = err.message; // Error de red o Axios
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
+      {/* Carga de Bootstrap Icons y fuentes */}
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
       />
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      />
+
+      {/* Estilos CSS (Incluye cambios para el estado de loading) */}
       <style>{`
         * {
           margin: 0;
@@ -406,6 +449,17 @@ const Login = () => {
           overflow: hidden;
         }
 
+        .login-btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        .login-btn-submit:disabled::before {
+            display: none;
+        }
+
         .login-btn-submit::before {
           content: "";
           position: absolute;
@@ -417,19 +471,27 @@ const Login = () => {
           transition: left 0.6s ease;
         }
 
-        .login-btn-submit:hover::before {
+        .login-btn-submit:not(:disabled):hover::before {
           left: 100%;
         }
     
-        .login-btn-submit:hover {
+        .login-btn-submit:not(:disabled):hover {
           background: linear-gradient(135deg, #2d7a3e 0%, #1e4d2b 100%);
           transform: translateY(-3px);
           box-shadow: 0 18px 50px rgba(30, 77, 43, 0.4);
           color: white;
         }
 
-        .login-btn-submit:active {
+        .login-btn-submit:not(:disabled):active {
           transform: translateY(-1px);
+        }
+
+        /* Spinner CSS para loading */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+            margin-right: 0.5rem;
         }
 
         .divider {
@@ -511,6 +573,7 @@ const Login = () => {
           color: white;
           padding: 1.1rem;
           border-radius: 14px;
+          margin-top: 1.5rem; /* Aseguramos que aparezca después del botón si no hay espacio */
           margin-bottom: 1.5rem;
           font-size: 0.9rem;
           font-weight: 600;
@@ -536,6 +599,7 @@ const Login = () => {
           align-items: center;
           gap: 0.6rem;
           margin-top: 1rem;
+          margin-bottom: 1.5rem; /* Espacio para el botón o el error */
         }
 
         .remember-me-wrapper input[type="checkbox"] {
@@ -733,6 +797,8 @@ const Login = () => {
                     </div>
                   </Form.Group>
 
+                  {/* Se movió el error y el botón para manejar la lógica de loading */}
+
                   <div className="remember-me-wrapper">
                     <input type="checkbox" id="rememberMe" />
                     <label htmlFor="rememberMe">
@@ -747,9 +813,26 @@ const Login = () => {
                     </div>
                   )}
 
-                  <Button type="submit" className="w-100 login-btn-submit">
-                    <i className="bi bi-box-arrow-in-right me-2"></i>
-                    Iniciar Sesión
+                  <Button
+                    type="submit"
+                    className="w-100 login-btn-submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+                        Iniciando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-box-arrow-in-right me-2"></i>
+                        Iniciar Sesión
+                      </>
+                    )}
                   </Button>
 
                   <div className="divider">
@@ -769,7 +852,7 @@ const Login = () => {
 
                   <div className="signup-prompt">
                     ¿No tienes una cuenta?{" "}
-                    <a href="#registro" className="signup-link">
+                    <a href="registro" className="signup-link">
                       Regístrate gratis
                     </a>
                   </div>
