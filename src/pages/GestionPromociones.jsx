@@ -32,8 +32,15 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+// Importar Contextos de Promociones
 import PromocionesContext from "../Context/Promociones/PromocionesContext";
 import PromocionesState from "../Context/Promociones/PromocionesState";
+
+// IMPORTANTE: Importar Contextos de Lugares y Socios
+import LugaresContext from "../Context/Lugares/LugaresContext";
+import LugaresState from "../Context/Lugares/LugaresState";
+import SociosAfiliadosContext from "../Context/SociosAfiliados/SociosAfiliadosContext";
+import SociosAfiliadosState from "../Context/SociosAfiliados/SociosAfiliadosState";
 
 const kairosTheme = {
   primary: "#4ecca3",
@@ -96,6 +103,8 @@ const PromocionModal = ({
   savePromocion,
   promocion,
   loading,
+  lugares, // Recibimos la lista de lugares
+  socios, // Recibimos la lista de socios
 }) => {
   const isEditing = promocion !== null;
 
@@ -185,6 +194,7 @@ const PromocionModal = ({
     const dataToSend = {
       ...formData,
       idLugar: parseInt(formData.idLugar),
+      // Si el idSocio es cadena vacía, enviamos null, si no, el entero
       idSocio: formData.idSocio ? parseInt(formData.idSocio) : null,
     };
 
@@ -253,37 +263,49 @@ const PromocionModal = ({
           </Form.Group>
 
           <Row className="mb-3">
+            {/* SELECT PARA LUGARES */}
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
-                <MapPin size={16} className="me-1" /> ID Lugar *
+                <MapPin size={16} className="me-1" /> Lugar *
               </Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="ID del lugar"
+              <Form.Select
                 name="idLugar"
                 value={formData.idLugar}
                 onChange={handleChange}
                 isInvalid={!!formErrors.idLugar}
                 required
                 style={{ borderRadius: "8px", padding: "0.625rem" }}
-              />
+              >
+                <option value="">Seleccione un lugar...</option>
+                {lugares.map((lugar) => (
+                  <option key={`lugar-${lugar.idLugar}`} value={lugar.idLugar}>
+                    {lugar.nombre}
+                  </option>
+                ))}
+              </Form.Select>
               <Form.Control.Feedback type="invalid">
                 {formErrors.idLugar}
               </Form.Control.Feedback>
             </Form.Group>
 
+            {/* SELECT PARA SOCIOS */}
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
-                <Building size={16} className="me-1" /> ID Socio
+                <Building size={16} className="me-1" /> Socio Afiliado
               </Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="ID del socio (opcional)"
+              <Form.Select
                 name="idSocio"
                 value={formData.idSocio}
                 onChange={handleChange}
                 style={{ borderRadius: "8px", padding: "0.625rem" }}
-              />
+              >
+                <option value="">Ninguno (Opcional)</option>
+                {socios.map((socio) => (
+                  <option key={`socio-${socio.idSocio}`} value={socio.idSocio}>
+                    {socio.nombreSocio}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </Row>
 
@@ -392,6 +414,10 @@ const GestionPromocionesContent = () => {
     deletePromocion,
   } = useContext(PromocionesContext);
 
+  // Consumimos los contextos de Lugares y Socios
+  const { lugares = [], getLugares } = useContext(LugaresContext);
+  const { socios = [], getSocios } = useContext(SociosAfiliadosContext);
+
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -405,31 +431,32 @@ const GestionPromocionesContent = () => {
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  const loadPromociones = async () => {
+  const loadAllData = async () => {
     if (loading.promociones) return;
 
     setLoading((prev) => ({ ...prev, promociones: true }));
     setError(null);
 
     try {
-      console.log("Iniciando carga de promociones...");
-      await getPromociones();
-      console.log("Carga de promociones completada");
+      console.log("Iniciando carga de datos...");
+      // Ejecutamos las 3 peticiones en paralelo para que sea más rápido
+      await Promise.all([getPromociones(), getLugares(), getSocios()]);
+
+      console.log("Carga de datos completada");
       setDataLoaded(true);
     } catch (error) {
-      console.error("Error cargando promociones:", error);
+      console.error("Error cargando datos:", error);
       setError(
-        "No se pudieron cargar las promociones. Verifica que la API esté ejecutándose en http://localhost:5219"
+        "Hubo un problema al conectar con el servidor. Verifica que la API esté activa."
       );
-      showMessage("Error al cargar las promociones", "danger");
+      showMessage("Error al cargar los datos", "danger");
     } finally {
       setLoading((prev) => ({ ...prev, promociones: false }));
     }
   };
 
   useEffect(() => {
-    console.log("Componente montado, cargando promociones...");
-    loadPromociones();
+    loadAllData();
   }, []);
 
   const showMessage = (text, type = "info") => {
@@ -438,8 +465,8 @@ const GestionPromocionesContent = () => {
   };
 
   const handleRefresh = () => {
-    console.log("🔄 Recargando promociones manualmente...");
-    loadPromociones();
+    console.log("🔄 Recargando datos manualmente...");
+    loadAllData();
   };
 
   const handleCreate = () => {
@@ -473,7 +500,7 @@ const GestionPromocionesContent = () => {
         showMessage(`Promoción creada exitosamente`, "success");
       }
       handleCloseModal();
-      await loadPromociones(); // Usar la función directa en lugar de la memoizada
+      await getPromociones(); // Recargar solo la lista de promociones
     } catch (error) {
       showMessage(
         `Error al ${isEditing ? "actualizar" : "crear"} promoción: ${error.message || "Error desconocido"}`,
@@ -491,7 +518,7 @@ const GestionPromocionesContent = () => {
     try {
       await deletePromocion(idToDelete);
       showMessage(`Promoción eliminada exitosamente`, "success");
-      await loadPromociones(); // Usar la función directa en lugar de la memoizada
+      await getPromociones(); // Recargar solo la lista de promociones
     } catch (error) {
       showMessage(
         `Error al eliminar promoción: ${error.message || "Error desconocido"}`,
@@ -523,8 +550,20 @@ const GestionPromocionesContent = () => {
     }
   };
 
+  // Función auxiliar para obtener nombre del lugar por ID
+  const getNombreLugar = (id) => {
+    const lugar = lugares.find((l) => l.idLugar === id);
+    return lugar ? lugar.nombre : `ID: ${id}`;
+  };
+
+  // Función auxiliar para obtener nombre del socio por ID
+  const getNombreSocio = (id) => {
+    if (!id) return "No asignado";
+    const socio = socios.find((s) => s.idSocio === id);
+    return socio ? socio.nombreSocio : `ID: ${id}`;
+  };
+
   const currentPromociones = Array.isArray(promociones) ? promociones : [];
-  console.log("📊 Promociones en estado:", currentPromociones);
 
   const filteredPromociones = currentPromociones.filter((promocion) => {
     const titulo = (promocion.titulo || "").toLowerCase();
@@ -630,6 +669,8 @@ const GestionPromocionesContent = () => {
         savePromocion={savePromocion}
         promocion={promocionToEdit}
         loading={loading.action}
+        lugares={lugares}
+        socios={socios}
       />
 
       <MessageBox message={message} />
@@ -1036,7 +1077,7 @@ const GestionPromocionesContent = () => {
                         color: kairosTheme.dark,
                       }}
                     >
-                      <MapPin size={16} className="me-1" /> ID Lugar
+                      <MapPin size={16} className="me-1" /> Lugar
                     </th>
                     <th
                       style={{
@@ -1045,7 +1086,7 @@ const GestionPromocionesContent = () => {
                         color: kairosTheme.dark,
                       }}
                     >
-                      <Building size={16} className="me-1" /> ID Socio
+                      <Building size={16} className="me-1" /> Socio
                     </th>
                     <th
                       style={{
@@ -1111,12 +1152,18 @@ const GestionPromocionesContent = () => {
                             : "Sin descripción"}
                         </div>
                       </td>
+                      {/* COLUMNA LUGAR: Mostramos el nombre del lugar en vez del ID */}
                       <td style={{ padding: "1rem" }}>
-                        <Badge bg="secondary">#{p.idLugar}</Badge>
+                        <Badge bg="secondary" title={`ID: ${p.idLugar}`}>
+                          {getNombreLugar(p.idLugar)}
+                        </Badge>
                       </td>
+                      {/* COLUMNA SOCIO: Mostramos el nombre del socio */}
                       <td style={{ padding: "1rem" }}>
                         {p.idSocio ? (
-                          <Badge bg="info">#{p.idSocio}</Badge>
+                          <Badge bg="info" title={`ID: ${p.idSocio}`}>
+                            {getNombreSocio(p.idSocio)}
+                          </Badge>
                         ) : (
                           <span className="text-muted">No asignado</span>
                         )}
@@ -1229,10 +1276,15 @@ const GestionPromocionesContent = () => {
   );
 };
 
+// IMPORTANTE: Anidamos los 3 States para que toda la aplicación tenga acceso
 const GestionPromociones = () => {
   return (
     <PromocionesState>
-      <GestionPromocionesContent />
+      <LugaresState>
+        <SociosAfiliadosState>
+          <GestionPromocionesContent />
+        </SociosAfiliadosState>
+      </LugaresState>
     </PromocionesState>
   );
 };

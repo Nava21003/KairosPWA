@@ -4,44 +4,35 @@ import { useNavigate } from "react-router-dom";
 import AuthContext from "../Context/Auth/AuthContext";
 import RoleContext from "../Context/Roles/RoleContext";
 
-// Contraseña de Acceso para abrir el formulario
 const ADMIN_PASSWORD_GATE = "admin1234";
 
 const Registro = () => {
-  // CONTEXTOS
   const { register } = useContext(AuthContext);
-  // 👈 Obtener roles y la función getRoles
   const { roles, getRoles } = useContext(RoleContext);
 
-  // ESTADOS DEL FORMULARIO DE ACCESO
   const [accessGranted, setAccessGranted] = useState(false);
   const [accessPassword, setAccessPassword] = useState("");
   const [accessError, setAccessError] = useState("");
 
-  // ESTADOS DEL FORMULARIO DE REGISTRO
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [idRol, setIdRol] = useState("2"); // 👈 Por defecto: Usuario Normal (asumiendo ID=2)
+  const [idRol, setIdRol] = useState("2");
 
-  // ESTADOS DE LA UI
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
 
-  // 1. Efecto para cargar los roles al montar el componente
   useEffect(() => {
-    // Solo cargamos roles si el acceso está concedido (para evitar llamadas innecesarias)
     if (accessGranted) {
       getRoles().catch(console.error);
     }
   }, [accessGranted, getRoles]);
 
-  // 2. Manejo de la contraseña de acceso (GATE)
   const handleAccessSubmit = (event) => {
     event.preventDefault();
     setAccessError("");
@@ -55,7 +46,6 @@ const Registro = () => {
     }
   };
 
-  // 3. Manejo del registro de usuario
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -72,18 +62,16 @@ const Registro = () => {
     setLoading(true);
 
     try {
-      // 4. Llamar a la función de registro con el ID de Rol seleccionado
       const response = await register({
         nombre,
         apellido,
         correo: email,
         contrasena: password,
-        idRol: parseInt(idRol, 10), // 👈 Aseguramos que sea un número
+        idRol: parseInt(idRol, 10),
         fotoPerfil: "",
       });
 
       if (response && response.success) {
-        // Redireccionar al dashboard o a una página de bienvenida
         navigate("/admin");
       } else {
         setError("Error en el registro. Intenta de nuevo.");
@@ -113,50 +101,8 @@ const Registro = () => {
     }
   };
 
-  // 4. Componente de Acceso (GATE)
-  const AccessGate = () => (
-    <Card className="login-card-advanced">
-      <div className="form-header">
-        <div className="form-logo-mini">
-          <i className="bi bi-shield-lock-fill"></i>
-        </div>
-        <h2 className="form-title-main">Acceso Restringido</h2>
-        <p className="form-subtitle">
-          Ingresa la contraseña de administrador para continuar con el registro.
-        </p>
-      </div>
-      <Form onSubmit={handleAccessSubmit}>
-        <Form.Group className="mb-3" controlId="accessPassword">
-          <Form.Label className="form-label-custom">
-            Contraseña de Acceso
-          </Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="admin1234"
-            className="form-control-custom"
-            required
-            value={accessPassword}
-            onChange={(e) => setAccessPassword(e.target.value)}
-          />
-        </Form.Group>
-
-        {accessError && (
-          <Alert variant="danger" className="mt-3">
-            {accessError}
-          </Alert>
-        )}
-
-        <Button type="submit" className="w-100 login-btn-submit mt-3">
-          Verificar Acceso
-        </Button>
-      </Form>
-    </Card>
-  );
-
-  // 5. Renderizado Principal
   return (
     <>
-      {/* Carga de Bootstrap Icons y fuentes */}
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -166,7 +112,6 @@ const Registro = () => {
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
       />
 
-      {/* Estilos CSS */}
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
@@ -240,7 +185,6 @@ const Registro = () => {
 
       <div className="login-page-container">
         <Row className="full-height-row">
-          {/* Columna Izquierda - Branding */}
           <Col lg={7} className="d-none d-lg-block p-0">
             <div className="login-visual-section">
               <div className="visual-decoration decoration-1"></div>
@@ -292,13 +236,51 @@ const Registro = () => {
             </div>
           </Col>
 
-          {/* Columna Derecha - Formulario */}
           <Col lg={5} className="p-0">
             <div className="login-form-wrapper">
-              {/* Renderiza el GATE si el acceso no ha sido concedido */}
-              {!accessGranted && <AccessGate />}
+              {!accessGranted && (
+                <Card className="login-card-advanced">
+                  <div className="form-header">
+                    <div className="form-logo-mini">
+                      <i className="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h2 className="form-title-main">Acceso Restringido</h2>
+                    <p className="form-subtitle">
+                      Ingresa la contraseña de administrador para continuar con
+                      el registro.
+                    </p>
+                  </div>
+                  <Form onSubmit={handleAccessSubmit}>
+                    <Form.Group className="mb-3" controlId="accessPassword">
+                      <Form.Label className="form-label-custom">
+                        Contraseña de Acceso
+                      </Form.Label>
+                      <Form.Control
+                        type="password"
+                        placeholder="admin1234"
+                        className="form-control-custom"
+                        required
+                        value={accessPassword}
+                        onChange={(e) => setAccessPassword(e.target.value)}
+                      />
+                    </Form.Group>
 
-              {/* Renderiza el formulario de Registro si el acceso está concedido */}
+                    {accessError && (
+                      <Alert variant="danger" className="mt-3">
+                        {accessError}
+                      </Alert>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-100 login-btn-submit mt-3"
+                    >
+                      Verificar Acceso
+                    </Button>
+                  </Form>
+                </Card>
+              )}
+
               {accessGranted && (
                 <Card className="login-card-advanced">
                   <div className="form-header">
@@ -312,7 +294,6 @@ const Registro = () => {
                   </div>
 
                   <Form onSubmit={handleSubmit}>
-                    {/* ASIGNACIÓN DE ROL */}
                     <Form.Group className="mb-3" controlId="formIdRol">
                       <Form.Label className="form-label-custom">
                         <i className="bi bi-shield-lock-fill"></i>
@@ -324,14 +305,12 @@ const Registro = () => {
                         onChange={(e) => setIdRol(e.target.value)}
                         required
                       >
-                        {/* Muestra un placeholder si no hay roles */}
                         {roles.length === 0 && (
                           <option value="" disabled>
                             Cargando roles...
                           </option>
                         )}
 
-                        {/* Mapea los roles cargados del contexto */}
                         {roles.map((role) => (
                           <option key={role.idRol} value={role.idRol}>
                             {role.nombreRol}
@@ -340,7 +319,6 @@ const Registro = () => {
                       </Form.Select>
                     </Form.Group>
 
-                    {/* Nombre y Apellido en la misma fila */}
                     <Row className="mb-3">
                       <Col md={6}>
                         <Form.Group controlId="formNombre">
@@ -375,7 +353,6 @@ const Registro = () => {
                       </Col>
                     </Row>
 
-                    {/* Correo */}
                     <Form.Group className="mb-3" controlId="formBasicEmail">
                       <Form.Label className="form-label-custom">
                         <i className="bi bi-envelope-fill"></i>
@@ -391,7 +368,6 @@ const Registro = () => {
                       />
                     </Form.Group>
 
-                    {/* Contraseña */}
                     <Form.Group className="mb-3" controlId="formBasicPassword">
                       <div className="d-flex justify-content-between align-items-center mb-2">
                         <Form.Label className="form-label-custom mb-0">
@@ -416,13 +392,14 @@ const Registro = () => {
                           aria-label="Mostrar/Ocultar contraseña"
                         >
                           <i
-                            className={`bi bi-eye${showPassword ? "-slash" : ""}-fill`}
+                            className={`bi bi-eye${
+                              showPassword ? "-slash" : ""
+                            }-fill`}
                           ></i>
                         </button>
                       </div>
                     </Form.Group>
 
-                    {/* Confirmar Contraseña */}
                     <Form.Group
                       className="mb-3"
                       controlId="formConfirmPassword"

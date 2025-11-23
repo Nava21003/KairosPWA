@@ -1,16 +1,10 @@
-import React, { useState } from "react";
-import { Container, Card, Button, Table } from "react-bootstrap";
-import {
-  MapPin,
-  Plus,
-  Pencil,
-  Trash2,
-  Pin,
-  Menu,
-  X,
-  Check,
-} from "lucide-react";
+import React, { useState, useContext, useEffect } from "react";
+import { Container, Card, Button, Table, Spinner } from "react-bootstrap";
+import { useOutletContext } from "react-router-dom";
+import LugaresContext from "../Context/Lugares/LugaresContext";
+import CategoriasContext from "../Context/Categorias/CategoriasContext";
 
+// Tema
 const kairosTheme = {
   primaryColor: "#f8f9fa",
   secondaryColor: "#ffffff",
@@ -19,33 +13,6 @@ const kairosTheme = {
   dangerColor: "#dc3545",
   textDark: "#343a40",
 };
-
-const mockData = [
-  {
-    id: 1,
-    name: "Parque Central",
-    category: "Naturaleza",
-    active: true,
-    lat: 21.1211,
-    lng: -101.6825,
-  },
-  {
-    id: 2,
-    name: "Cafetería La Nube",
-    category: "Comercio",
-    active: true,
-    lat: 21.1231,
-    lng: -101.684,
-  },
-  {
-    id: 3,
-    name: "Mirador del Sol",
-    category: "Turismo",
-    active: false,
-    lat: 21.1199,
-    lng: -101.6799,
-  },
-];
 
 const MessageBox = ({ message }) => {
   if (!message) return null;
@@ -63,9 +30,14 @@ const MessageBox = ({ message }) => {
     transition: "opacity 0.3s",
   };
 
-  let bgColor = kairosTheme.editButtonColor;
-  if (message.type === "success") bgColor = "#28a745";
-  if (message.type === "danger") bgColor = kairosTheme.dangerColor;
+  const bgColor =
+    message.type === "success"
+      ? "#28a745"
+      : message.type === "danger"
+        ? kairosTheme.dangerColor
+        : message.type === "warning"
+          ? "#ffc107"
+          : kairosTheme.editButtonColor;
 
   return (
     <div style={{ ...baseStyle, backgroundColor: bgColor }}>{message.text}</div>
@@ -73,190 +45,200 @@ const MessageBox = ({ message }) => {
 };
 
 const GestionPOIs = () => {
-  const toggleSidebar = () => console.log("Sidebar toggle simulated.");
+  // CONTEXTOS
+  const { lugares, getLugares, deleteLugar } = useContext(LugaresContext);
+  const { categorias, getCategorias } = useContext(CategoriasContext);
 
-  const [pois, setPois] = useState(mockData);
+  // ESTADOS
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
+
+  // Sidebar (si no existe, usa función mock)
+  const context = useOutletContext();
+  const toggleSidebar =
+    context?.toggleSidebar || (() => console.log("Sidebar toggle simulated."));
+
+  // Cargar datos al inicio
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([getLugares(), getCategorias()]);
+      } catch (error) {
+        showMessage("Error al cargar datos iniciales.", "danger");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const showMessage = (text, type = "info") => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const getCategoryName = (idCategoria) => {
+    const categoria = categorias.find((c) => c.idCategoria === idCategoria);
+    return categoria ? categoria.nombre : "Desconocida";
+  };
+
+  // --- MÉTODOS ---
+
   const handleEdit = (id) => {
-    showMessage(`Abriendo modal de edición para POI ${id}`, "info");
+    showMessage(`Abriendo modal para editar POI ID: ${id}`, "info");
   };
 
   const confirmDelete = (id) => {
-    setConfirmingId(id);
+    const poi = lugares.find((p) => p.idLugar === id);
+    const action = poi?.estatus ? "desactivar" : "eliminar";
+    setConfirmingId({ id, action });
   };
 
-  const executeDelete = () => {
-    const idToDelete = confirmingId;
-    setPois(pois.filter((p) => p.id !== idToDelete));
-    showMessage(`POI ${idToDelete} eliminado con éxito.`, "danger");
+  const executeDelete = async () => {
+    const { id, action } = confirmingId;
     setConfirmingId(null);
+
+    setLoading(true);
+    try {
+      await deleteLugar(id);
+      showMessage(
+        `POI ID ${id} ha sido ${action === "desactivar" ? "desactivado" : "eliminado"}.`,
+        "success"
+      );
+    } catch (error) {
+      showMessage(`Error al ${action} el POI.`, "danger");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const cancelDelete = () => {
-    showMessage(`Eliminación de POI ${confirmingId} cancelada.`, "info");
+    showMessage("Acción cancelada", "info");
     setConfirmingId(null);
   };
 
-  const handleViewMap = (lat, lng) =>
-    window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+  const handleViewMap = (lat, lng) => {
+    if (lat && lng) {
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
+    } else {
+      showMessage("No hay ubicación disponible.", "warning");
+    }
+  };
 
   const handleCreate = () => {
-    showMessage(`Abriendo modal para crear Nuevo POI`, "success");
+    showMessage("Abriendo modal para crear nuevo POI", "success");
   };
+
+  // POI actual en confirmación
+  const currentConfirmingPoi = confirmingId
+    ? lugares.find((p) => p.idLugar === confirmingId.id)
+    : null;
+
+  const confirmationMessage = currentConfirmingPoi
+    ? `¿Seguro que deseas ${confirmingId.action} el POI "${currentConfirmingPoi.nombre}" (ID: ${currentConfirmingPoi.idLugar})?`
+    : "";
+
+  // LOADING UI
+  if (loading) {
+    return (
+      <Container fluid className="p-4 text-center">
+        <Spinner animation="border" />
+        <p className="mt-3">Cargando Puntos de Interés...</p>
+      </Container>
+    );
+  }
 
   return (
     <Container fluid style={{ padding: "0px" }}>
       <MessageBox message={message} />
 
+      {/* ESTILOS */}
       <style>{`
-        /* Estilos de Contenedor General */
         body {
-          background-color: ${kairosTheme.primaryColor}; /* Fondo muy claro */
-          color: ${kairosTheme.textDark}; /* Texto oscuro */
+          background-color: ${kairosTheme.primaryColor};
+          color: ${kairosTheme.textDark};
           font-family: 'Inter', sans-serif;
         }
 
-        /* El texto claro ahora se invierte para ser oscuro donde se necesite en un tema claro */
-        .text-dark-contrast {
-          color: ${kairosTheme.textDark} !important;
-        }
-
-        /* Estilos del Header */
         .header-pois {
           background: linear-gradient(145deg, ${kairosTheme.secondaryColor}, ${kairosTheme.primaryColor});
           padding: 35px;
           border-radius: 14px;
           margin-bottom: 30px;
-          color: ${kairosTheme.textDark}; /* Texto oscuro en el header */
+          color: ${kairosTheme.textDark};
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.1); /* Sombra más sutil */
+          box-shadow: 0 6px 18px rgba(0,0,0,0.1);
           border: 1px solid #dee2e6;
         }
 
-        .header-pois-title {
-          font-size: 2.2rem;
-          font-weight: 800;
-          margin-left: 15px;
-          display: flex;
-          align-items: center;
-        }
-
-        /* Estilos de la Tabla */
         .table-container {
-            background-color: ${kairosTheme.secondaryColor};
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        .table thead th {
-          background-color: ${kairosTheme.primaryColor};
-          color: ${kairosTheme.textDark} !important;
-          font-weight: 700 !important;
-          padding: 18px !important;
-          font-size: 1.05rem;
-          border-bottom: 2px solid #dee2e6;
-        }
-        
-        .table tbody td {
-          padding: 14px 18px !important;
-          font-size: 1rem;
-          color: ${kairosTheme.textDark} !important;
-        }
-        
-        .table-striped > tbody > tr:nth-of-type(odd) > * {
-            background-color: rgba(0, 0, 0, 0.03); 
-        }
-        
-        .table-hover > tbody > tr:hover > * {
-            background-color: rgba(0, 0, 0, 0.08);
+          background-color: ${kairosTheme.secondaryColor};
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-
-        .table-action-btn {
-          margin-right: 8px !important;
-          font-size: 0.95rem !important;
-          padding: 0.5rem 0.75rem !important;
-          border-radius: 0.5rem;
-        }
-
-        /* Estilos de botones específicos */
         .btn-accent {
-            background-color: ${kairosTheme.accentColor};
-            border-color: ${kairosTheme.accentColor};
-            color: #fff; /* Texto blanco en botón de acento */
-            font-weight: 600;
-        }
-        .btn-accent:hover {
-            background-color: #3cae8a;
-            border-color: #3cae8a;
-            color: #fff;
+          background-color: ${kairosTheme.accentColor};
+          border-color: ${kairosTheme.accentColor};
+          color: ${kairosTheme.textDark};
+          font-weight: 600;
         }
       `}</style>
 
       <Container fluid className="p-4 p-sm-5">
+        {/* ENCABEZADO */}
         <div className="header-pois">
           <div className="d-flex align-items-center">
-            <Button
-              variant="outline-dark"
-              onClick={toggleSidebar}
-              style={{ borderRadius: "0.5rem" }}
-            >
-              <Menu />
+            <Button variant="outline-dark" onClick={toggleSidebar}>
+              <i className="bi bi-list" />
             </Button>
-            <span className="header-pois-title">
-              <MapPin className="me-2 text-info" /> Gestión de Puntos de Interés
+            <span className="ms-3 fs-3 fw-bold">
+              <i className="bi bi-geo-alt-fill text-info me-2" />
+              Gestión de Puntos de Interés
             </span>
           </div>
 
-          <Button
-            className="btn-accent"
-            onClick={handleCreate}
-            style={{ fontSize: "1.1rem" }}
-          >
-            <Plus className="me-1" /> Nuevo POI
+          <Button className="btn-accent" onClick={handleCreate}>
+            <i className="bi bi-plus-lg me-1" /> Nuevo POI
           </Button>
         </div>
 
+        {/* CONFIRMACIÓN */}
         {confirmingId && (
-          <Card
-            className="shadow-lg mb-4 border-danger"
-            style={{ backgroundColor: kairosTheme.secondaryColor }}
-          >
-            <Card.Body className="d-flex justify-content-between align-items-center text-dark-contrast">
-              <h5 className="mb-0">
-                ¿Estás seguro de que quieres eliminar el POI ID: {confirmingId}?
-                Esta acción es irreversible.
-              </h5>
+          <Card className="shadow-lg mb-4 border-danger">
+            <Card.Body className="d-flex justify-content-between align-items-center">
+              <h5 className="mb-0">{confirmationMessage}</h5>
               <div>
                 <Button
                   variant="danger"
+                  className="me-3"
                   onClick={executeDelete}
-                  className="me-2"
                 >
-                  <Trash2 className="me-1" size={16} /> Sí, Eliminar
+                  <i className="bi bi-trash-fill me-1" />
+                  Sí,{" "}
+                  {confirmingId.action === "desactivar"
+                    ? "Desactivar"
+                    : "Eliminar"}
                 </Button>
                 <Button variant="outline-secondary" onClick={cancelDelete}>
-                  <X className="me-1" size={16} /> Cancelar
+                  Cancelar
                 </Button>
               </div>
             </Card.Body>
           </Card>
         )}
 
-        <Card className="shadow-sm border-0 table-container">
+        {/* TABLA */}
+        <Card className="table-container">
           <Card.Body className="p-0">
             <div className="table-responsive">
-              {pois.length > 0 ? (
+              {lugares?.length ? (
                 <Table striped hover className="align-middle mb-0">
                   <thead>
                     <tr>
@@ -268,58 +250,57 @@ const GestionPOIs = () => {
                       <th className="text-center">Acciones</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {pois.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.id}</td>
-                        <td>
-                          <strong>{p.name}</strong>
-                        </td>
-                        <td>{p.category}</td>
+                    {lugares.map((p) => (
+                      <tr key={p.idLugar}>
+                        <td>{p.idLugar}</td>
+                        <td>{p.nombre}</td>
+                        <td>{getCategoryName(p.idCategoria)}</td>
+
                         <td className="text-center">
                           <span
-                            className={`badge px-3 py-2 rounded-pill ${p.active ? "bg-success" : "bg-danger"}`}
+                            className={`badge px-3 py-2 ${
+                              p.estatus ? "bg-success" : "bg-danger"
+                            }`}
                           >
-                            {p.active ? (
-                              <>
-                                <Check size={14} className="me-1" /> Activo
-                              </>
-                            ) : (
-                              "Inactivo"
-                            )}
+                            {p.estatus ? "Activo" : "Inactivo"}
                           </span>
                         </td>
+
                         <td className="text-center">
                           <Button
                             size="sm"
                             variant="outline-primary"
-                            onClick={() => handleViewMap(p.lat, p.lng)}
-                            disabled={!!confirmingId}
+                            onClick={() => handleViewMap(p.latitud, p.longitud)}
                           >
-                            <Pin size={16} /> Ver Mapa
+                            <i className="bi bi-pin-map-fill" /> Ver Mapa
                           </Button>
                         </td>
+
                         <td className="text-center">
                           <Button
                             size="sm"
-                            className="table-action-btn"
+                            className="me-2"
                             style={{
                               backgroundColor: kairosTheme.editButtonColor,
-                              borderColor: kairosTheme.editButtonColor,
+                              color: "#fff",
                             }}
-                            onClick={() => handleEdit(p.id)}
-                            disabled={!!confirmingId}
+                            onClick={() => handleEdit(p.idLugar)}
                           >
-                            <Pencil size={16} />
+                            <i className="bi bi-pencil-square" />
                           </Button>
+
                           <Button
                             size="sm"
-                            variant="danger"
-                            className="table-action-btn"
-                            onClick={() => confirmDelete(p.id)}
-                            disabled={!!confirmingId}
+                            variant={p.estatus ? "danger" : "success"}
+                            onClick={() => confirmDelete(p.idLugar)}
                           >
-                            <Trash2 size={16} />
+                            <i
+                              className={`bi ${
+                                p.estatus ? "bi-x-lg" : "bi-check-lg"
+                              }`}
+                            />
                           </Button>
                         </td>
                       </tr>
@@ -328,8 +309,13 @@ const GestionPOIs = () => {
                 </Table>
               ) : (
                 <div className="text-center py-5 text-secondary">
-                  <MapPin size={48} className="mb-3" />
-                  <p className="lead">No hay Puntos de Interés registrados.</p>
+                  <i
+                    className="bi bi-geo-alt"
+                    style={{ fontSize: "48px", color: "#ccc" }}
+                  />
+                  <p className="lead mt-3">
+                    No hay Puntos de Interés registrados.
+                  </p>
                 </div>
               )}
             </div>

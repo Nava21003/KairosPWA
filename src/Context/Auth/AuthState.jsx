@@ -6,7 +6,6 @@ import { LOGIN_SUCCESS, REGISTER_SUCCESS, LOGOUT } from "../types";
 
 const API_AUTH_URL = "http://localhost:5219/api/Auth";
 
-// Nota: Inicializa el estado con valores de localStorage si existen para persistencia
 const AuthState = ({ children }) => {
   const initialState = {
     user: null,
@@ -16,24 +15,16 @@ const AuthState = ({ children }) => {
 
   const [state, dispatch] = useReducer(AuthReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para AuthController
-  // ----------------------------------
-
   /**
    * Inicia sesión (POST /api/Auth/login)
-   * @param {object} credenciales - { correo, contrasena }
+   * @param {object} credenciales
    */
   const login = async (credenciales) => {
     try {
       const res = await axios.post(`${API_AUTH_URL}/login`, credenciales);
-
-      // Opcional: Almacenar token en localStorage para persistencia
-      // localStorage.setItem('token', res.data.token);
-
       dispatch({
         type: LOGIN_SUCCESS,
-        payload: res.data, // { success, message, token, user }
+        payload: res.data,
       });
       return res.data;
     } catch (error) {
@@ -47,18 +38,14 @@ const AuthState = ({ children }) => {
 
   /**
    * Registra un nuevo usuario (POST /api/Auth/register)
-   * @param {object} userData - { nombre, apellido, correo, contrasena, fotoPerfil }
+   * @param {object} userData
    */
   const register = async (userData) => {
     try {
       const res = await axios.post(`${API_AUTH_URL}/register`, userData);
-
-      // Opcional: Almacenar token en localStorage para persistencia
-      // localStorage.setItem('token', res.data.token);
-
       dispatch({
         type: REGISTER_SUCCESS,
-        payload: res.data, // { success, message, token, user }
+        payload: res.data,
       });
       return res.data;
     } catch (error) {
@@ -74,7 +61,6 @@ const AuthState = ({ children }) => {
    * Cierra la sesión
    */
   const logout = () => {
-    // localStorage.removeItem('token');
     dispatch({ type: LOGOUT });
   };
 

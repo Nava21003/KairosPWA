@@ -13,10 +13,6 @@ const ActividadesState = ({ children }) => {
 
   const [state, dispatch] = useReducer(ActividadesReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para ActividadesController
-  // ----------------------------------
-
   /**
    * Obtiene actividades por ID de usuario (GET /api/Actividades/{idUsuario})
    */

@@ -7,12 +7,24 @@ import { RouterProvider } from "react-router-dom";
 import ReloadPrompt from "./ReloadPrompt.jsx";
 import AuthState from "./Context/Auth/AuthState.jsx";
 import RoleState from "./Context/Roles/RoleState.jsx";
+import LugaresState from "./Context/Lugares/LugaresState.jsx";
+import PromocionesState from "./Context/Promociones/PromocionesState.jsx";
+import UserState from "./Context/User/UserState.jsx";
+import CategoriasState from "./Context/Categorias/CategoriasState.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthState>
       <RoleState>
-        <RouterProvider router={router} />
+        <PromocionesState>
+          <LugaresState>
+            <UserState>
+              <CategoriasState>
+                <RouterProvider router={router} />
+              </CategoriasState>
+            </UserState>
+          </LugaresState>
+        </PromocionesState>
       </RoleState>
     </AuthState>
     <ReloadPrompt />

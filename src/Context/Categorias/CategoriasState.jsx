@@ -18,77 +18,68 @@ const CategoriasState = ({ children }) => {
 
   const [state, dispatch] = useReducer(CategoriasReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para CategoriasController
-  // ----------------------------------
-
-  /**
-   * Obtiene todas las categorías (GET /api/Categorias)
-   */
+  // Obtener categorías
   const getCategorias = async () => {
     try {
       const res = await axios.get(API_CATEGORIAS_URL);
+      // El reducer ya tiene la lógica para extraer $values si viene de .NET
       dispatch({ type: GET_CATEGORIAS, payload: res.data });
-      return res.data;
     } catch (error) {
-      console.error(
-        "Error al obtener categorías:",
-        error.response?.data || error.message
-      );
-      throw error;
+      console.error("Error al obtener categorías:", error);
     }
   };
 
-  /**
-   * Crea una nueva categoría (POST /api/Categorias)
-   */
+  // Crear categoría
   const createCategoria = async (categoriaData) => {
     try {
-      const response = await axios.post(API_CATEGORIAS_URL, categoriaData);
-      await getCategorias(); // Recargar la lista para consistencia
-      return response.data;
+      // Aseguramos que estatus sea booleano y descripcion string
+      const dataToSend = {
+        nombre: categoriaData.nombre,
+        descripcion: categoriaData.descripcion || "",
+        estatus: categoriaData.estatus === true, // fuerza booleano
+      };
+
+      const res = await axios.post(API_CATEGORIAS_URL, dataToSend);
+
+      // Actualizamos el estado local
+      dispatch({ type: CREATE_CATEGORIA, payload: res.data });
+
+      // Opcional: recargar todo para asegurar sincronización
+      await getCategorias();
     } catch (error) {
-      console.error(
-        "ERROR (Crear Categoría):",
-        error.response?.data?.errors || error.message
-      );
-      throw error;
+      console.error("Error al crear categoría:", error);
+      throw error; // Lanzar error para que el componente UI lo muestre
     }
   };
 
-  /**
-   * Actualiza una categoría (PUT /api/Categorias/{id})
-   */
+  // Actualizar categoría
   const updateCategoria = async (id, categoriaData) => {
     try {
-      const dataToSend = { ...categoriaData, idCategoria: id };
-      await axios.put(`${API_CATEGORIAS_URL}/${id}`, dataToSend); // Devuelve 204 NoContent
-      await getCategorias(); // Recargar la lista para consistencia
-      return true;
+      const dataToSend = {
+        idCategoria: id,
+        nombre: categoriaData.nombre,
+        descripcion: categoriaData.descripcion || "",
+        estatus: categoriaData.estatus === true,
+      };
+
+      await axios.put(`${API_CATEGORIAS_URL}/${id}`, dataToSend);
+
+      // En React state, a veces es más fácil recargar la lista completa
+      // para asegurar que el backend procesó todo bien.
+      await getCategorias();
     } catch (error) {
-      console.error(
-        "ERROR (Actualizar Categoría):",
-        error.response?.data?.errors || error.message
-      );
+      console.error("Error al actualizar categoría:", error);
       throw error;
     }
   };
 
-  /**
-   * Elimina una categoría (DELETE /api/Categorias/{id})
-   */
+  // Eliminar categoría
   const deleteCategoria = async (id) => {
     try {
-      await axios.delete(`${API_CATEGORIAS_URL}/${id}`); // Devuelve 204 NoContent
-      await getCategorias(); // Recargar la lista para consistencia
-      // Opcional: si quieres actualizar el estado sin recargar la lista:
-      // dispatch({ type: DELETE_CATEGORIA, payload: id });
-      return true;
+      await axios.delete(`${API_CATEGORIAS_URL}/${id}`);
+      dispatch({ type: DELETE_CATEGORIA, payload: id });
     } catch (error) {
-      console.error(
-        "ERROR (Eliminar Categoría):",
-        error.response?.data?.errors || error.message
-      );
+      console.error("Error al eliminar categoría:", error);
       throw error;
     }
   };

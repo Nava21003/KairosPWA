@@ -60,3 +60,11 @@ export const DELETE_TOKEN = 'DELETE_TOKEN';
 // UsoDigital
 export const GET_USO_DIGITAL_BY_USER = 'GET_USO_DIGITAL_BY_USER';
 export const CREATE_USO_DIGITAL = 'CREATE_USO_DIGITAL';
+
+// Socios
+// Socios
+export const CREATE_SOCIO = 'CREATE_SOCIO';
+export const GET_SOCIO_BY_ID = 'GET_SOCIO_BY_ID';
+export const GET_SOCIOS = 'GET_SOCIOS';
+export const UPDATE_SOCIO = 'UPDATE_SOCIO';
+export const DELETE_SOCIO = 'DELETE_SOCIO';
