@@ -1,77 +1,444 @@
-import React, { useState, useContext, useEffect } from "react";
-import { Container, Card, Button, Table, Spinner } from "react-bootstrap";
-import { useOutletContext } from "react-router-dom";
-import LugaresContext from "../Context/Lugares/LugaresContext";
-import CategoriasContext from "../Context/Categorias/CategoriasContext";
+import React, {
+  useState,
+  useContext,
+  useEffect,
+  useReducer,
+  createContext,
+} from "react";
+import axios from "axios";
+import {
+  Container,
+  Card,
+  Button,
+  Table,
+  Modal,
+  Form,
+  Row,
+  Col,
+  Spinner,
+  Badge,
+  InputGroup,
+  Alert,
+} from "react-bootstrap";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  CheckCircle,
+  XCircle,
+  Hash,
+  Save,
+  Search,
+  Filter,
+  RefreshCw,
+  Power,
+  MapPin,
+  Award, // Icono para destacar (Premio)
+  Trophy, // Icono Trofeo
+  SortAsc,
+  AlignLeft,
+} from "lucide-react";
 
-// Tema
+// --- 1. CONTEXTO Y REDUCER ---
+
+const POIsContext = createContext();
+
+const GET_POIS = "GET_POIS";
+const GET_LUGARES_FOR_SELECT = "GET_LUGARES_FOR_SELECT";
+const CREATE_POI = "CREATE_POI";
+const UPDATE_POI = "UPDATE_POI";
+const DELETE_POI = "DELETE_POI";
+
+const extractData = (payload) => {
+  if (payload && payload.$values) return payload.$values;
+  return payload;
+};
+
+const POIsReducer = (state, action) => {
+  const { payload, type } = action;
+  switch (type) {
+    case GET_POIS:
+      return {
+        ...state,
+        pois: Array.isArray(extractData(payload)) ? extractData(payload) : [],
+      };
+    case GET_LUGARES_FOR_SELECT:
+      return {
+        ...state,
+        lugares: Array.isArray(extractData(payload))
+          ? extractData(payload)
+          : [],
+      };
+    case CREATE_POI:
+      return state;
+    case UPDATE_POI:
+      return state;
+    case DELETE_POI:
+      return {
+        ...state,
+        pois: state.pois.filter((p) => p.idPunto !== payload),
+      };
+    default:
+      return state;
+  }
+};
+
+// --- 2. STATE ---
+
+const API_POIS_URL = "http://localhost:5219/api/PuntosInteres";
+const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
+
+const POIsState = ({ children }) => {
+  const initialState = { pois: [], lugares: [] };
+  const [state, dispatch] = useReducer(POIsReducer, initialState);
+
+  const getPOIs = async () => {
+    try {
+      const res = await axios.get(API_POIS_URL);
+      dispatch({ type: GET_POIS, payload: res.data });
+    } catch (error) {
+      console.error("Error getting POIs:", error);
+      throw error;
+    }
+  };
+
+  // Necesitamos cargar lugares para el Dropdown del formulario
+  const getLugaresForSelect = async () => {
+    try {
+      const res = await axios.get(API_LUGARES_URL);
+      dispatch({ type: GET_LUGARES_FOR_SELECT, payload: res.data });
+    } catch (error) {
+      console.error("Error getting Lugares:", error);
+    }
+  };
+
+  const createPOI = async (data) => {
+    try {
+      const res = await axios.post(API_POIS_URL, data);
+      dispatch({ type: CREATE_POI, payload: res.data });
+    } catch (error) {
+      console.error("Error create POI:", error);
+      throw error;
+    }
+  };
+
+  const updatePOI = async (id, data) => {
+    try {
+      const dataToSend = { ...data, idPunto: id };
+      await axios.put(`${API_POIS_URL}/${id}`, dataToSend);
+      dispatch({ type: UPDATE_POI, payload: dataToSend });
+    } catch (error) {
+      console.error("Error update POI:", error);
+      throw error;
+    }
+  };
+
+  const deletePOI = async (id) => {
+    try {
+      await axios.delete(`${API_POIS_URL}/${id}`);
+      dispatch({ type: DELETE_POI, payload: id });
+    } catch (error) {
+      console.error("Error delete POI:", error);
+      throw error;
+    }
+  };
+
+  return (
+    <POIsContext.Provider
+      value={{
+        pois: state.pois,
+        lugaresDisponibles: state.lugares,
+        getPOIs,
+        getLugaresForSelect,
+        createPOI,
+        updatePOI,
+        deletePOI,
+      }}
+    >
+      {children}
+    </POIsContext.Provider>
+  );
+};
+
+// --- 3. UI ---
+
 const kairosTheme = {
-  primaryColor: "#f8f9fa",
-  secondaryColor: "#ffffff",
-  accentColor: "#4ecca3",
-  editButtonColor: "#17a2b8",
-  dangerColor: "#dc3545",
-  textDark: "#343a40",
+  primary: "#4ecca3",
+  secondary: "#6c757d",
+  success: "#28a745",
+  danger: "#e74c3c",
+  warning: "#f39c12",
+  info: "#3498db",
+  light: "#f8f9fa",
+  dark: "#2c3e50",
+  white: "#ffffff",
+  bodyBg: "#f4f6f9",
 };
 
 const MessageBox = ({ message }) => {
   if (!message) return null;
-
-  const baseStyle = {
-    position: "fixed",
-    top: "20px",
-    right: "20px",
-    zIndex: 1000,
-    padding: "1rem",
-    borderRadius: "0.5rem",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-    color: "#fff",
-    fontWeight: 600,
-    transition: "opacity 0.3s",
+  const colorMap = {
+    success: kairosTheme.success,
+    danger: kairosTheme.danger,
+    info: kairosTheme.info,
   };
-
-  const bgColor =
-    message.type === "success"
-      ? "#28a745"
-      : message.type === "danger"
-        ? kairosTheme.dangerColor
-        : message.type === "warning"
-          ? "#ffc107"
-          : kairosTheme.editButtonColor;
-
   return (
-    <div style={{ ...baseStyle, backgroundColor: bgColor }}>{message.text}</div>
+    <div
+      style={{
+        position: "fixed",
+        top: "20px",
+        right: "20px",
+        zIndex: 1050,
+        backgroundColor: colorMap[message.type] || kairosTheme.info,
+        color: "#fff",
+        padding: "1rem 1.5rem",
+        borderRadius: "12px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        fontWeight: 600,
+        animation: "slideInRight 0.3s ease-out",
+        minWidth: "300px",
+      }}
+    >
+      <Award size={20} /> <span>{message.text}</span>
+    </div>
   );
 };
 
-const GestionPOIs = () => {
-  // CONTEXTOS
-  const { lugares, getLugares, deleteLugar } = useContext(LugaresContext);
-  const { categorias, getCategorias } = useContext(CategoriasContext);
+const POIModal = ({ show, handleClose, savePOI, poi, lugares, loading }) => {
+  const isEditing = poi !== null;
+  const [formData, setFormData] = useState({
+    idLugar: "",
+    etiqueta: "",
+    descripcion: "",
+    prioridad: 0,
+    estatus: true,
+  });
+  const [formErrors, setFormErrors] = useState({});
 
-  // ESTADOS
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(null);
-  const [confirmingId, setConfirmingId] = useState(null);
-
-  // Sidebar (si no existe, usa función mock)
-  const context = useOutletContext();
-  const toggleSidebar =
-    context?.toggleSidebar || (() => console.log("Sidebar toggle simulated."));
-
-  // Cargar datos al inicio
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([getLugares(), getCategorias()]);
-      } catch (error) {
-        showMessage("Error al cargar datos iniciales.", "danger");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+    if (poi && show) {
+      setFormData({
+        idPunto: poi.idPunto,
+        idLugar: poi.idLugar,
+        etiqueta: poi.etiqueta || "",
+        descripcion: poi.descripcion || "",
+        prioridad: poi.prioridad || 0,
+        estatus: poi.estatus ?? true,
+      });
+    } else if (!show) {
+      setFormData({
+        idLugar: "",
+        etiqueta: "",
+        descripcion: "",
+        prioridad: 0,
+        estatus: true,
+      });
+      setFormErrors({});
+    }
+  }, [poi, show]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const errors = {};
+    if (!formData.idLugar) errors.idLugar = "Debes seleccionar un lugar";
+    if (!formData.etiqueta.trim()) errors.etiqueta = "La etiqueta es requerida";
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    const dataToSend = {
+      ...formData,
+      idLugar: parseInt(formData.idLugar),
+      prioridad: parseInt(formData.prioridad),
     };
+    savePOI(dataToSend, isEditing);
+  };
+
+  return (
+    <Modal show={show} onHide={handleClose} centered size="lg">
+      <Modal.Header
+        closeButton
+        style={{
+          borderBottom: `3px solid ${kairosTheme.primary}`,
+          backgroundColor: kairosTheme.light,
+        }}
+      >
+        <Modal.Title className="d-flex align-items-center fw-bold">
+          {isEditing ? (
+            <>
+              <Pencil className="me-2" color={kairosTheme.info} /> Editar Punto
+              Destacado
+            </>
+          ) : (
+            <>
+              <Plus className="me-2" color={kairosTheme.primary} /> Nuevo Punto
+              Destacado
+            </>
+          )}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
+        <Form onSubmit={handleSubmit}>
+          <Row className="mb-3">
+            <Form.Group as={Col} md={12}>
+              <Form.Label className="fw-semibold">
+                <MapPin size={16} className="me-1" /> Lugar a Destacar *
+              </Form.Label>
+              <Form.Select
+                name="idLugar"
+                value={formData.idLugar}
+                onChange={handleChange}
+                isInvalid={!!formErrors.idLugar}
+                disabled={isEditing}
+              >
+                <option value="">Seleccionar lugar...</option>
+                {lugares.map((l) => (
+                  <option key={l.idLugar} value={l.idLugar}>
+                    {l.nombre}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Control.Feedback type="invalid">
+                {formErrors.idLugar}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Row>
+          <Row className="mb-3">
+            <Form.Group as={Col} md={8}>
+              <Form.Label className="fw-semibold">
+                <Award size={16} className="me-1" /> Etiqueta (Badge) *
+              </Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ej. Más Visitado, Top 1, Recomendado"
+                name="etiqueta"
+                value={formData.etiqueta}
+                onChange={handleChange}
+                isInvalid={!!formErrors.etiqueta}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.etiqueta}
+              </Form.Control.Feedback>
+            </Form.Group>
+            <Form.Group as={Col} md={4}>
+              <Form.Label className="fw-semibold">
+                <SortAsc size={16} className="me-1" /> Prioridad
+              </Form.Label>
+              <Form.Control
+                type="number"
+                name="prioridad"
+                value={formData.prioridad}
+                onChange={handleChange}
+              />
+              <Form.Text className="text-muted" style={{ fontSize: "0.7rem" }}>
+                Mayor número = sale primero
+              </Form.Text>
+            </Form.Group>
+          </Row>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-semibold">
+              <AlignLeft size={16} className="me-1" /> Descripción (Opcional)
+            </Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={2}
+              placeholder="Por qué es destacado..."
+              name="descripcion"
+              value={formData.descripcion}
+              onChange={handleChange}
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="switch"
+              name="estatus"
+              id="estatus-switch"
+              label={
+                <span className="fw-semibold">
+                  {formData.estatus
+                    ? "Punto Activo (Visible)"
+                    : "Punto Inactivo"}
+                </span>
+              }
+              checked={formData.estatus}
+              onChange={handleChange}
+            />
+          </Form.Group>
+        </Form>
+      </Modal.Body>
+      <Modal.Footer style={{ backgroundColor: kairosTheme.light }}>
+        <Button
+          variant="outline-secondary"
+          onClick={handleClose}
+          disabled={loading}
+          style={{ borderRadius: "8px" }}
+        >
+          <X size={16} className="me-1" /> Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{
+            backgroundColor: kairosTheme.primary,
+            border: "none",
+            borderRadius: "8px",
+            fontWeight: 600,
+          }}
+        >
+          {loading ? (
+            <Spinner animation="border" size="sm" className="me-2" />
+          ) : (
+            <Save size={16} className="me-2" />
+          )}{" "}
+          Guardar
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+const GestionPOIsContent = () => {
+  const {
+    pois,
+    lugaresDisponibles,
+    getPOIs,
+    getLugaresForSelect,
+    createPOI,
+    updatePOI,
+    deletePOI,
+  } = useContext(POIsContext);
+  const [loading, setLoading] = useState({ data: false, action: false });
+  const [message, setMessage] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [poiToEdit, setPoiToEdit] = useState(null);
+  const [confirmingId, setConfirmingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const loadData = async () => {
+    if (loading.data) return;
+    setLoading((p) => ({ ...p, data: true }));
+    try {
+      await Promise.all([getPOIs(), getLugaresForSelect()]);
+    } catch (e) {
+      showMessage("Error de conexión", "danger");
+    } finally {
+      setLoading((p) => ({ ...p, data: false }));
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -80,250 +447,402 @@ const GestionPOIs = () => {
     setTimeout(() => setMessage(null), 4000);
   };
 
-  const getCategoryName = (idCategoria) => {
-    const categoria = categorias.find((c) => c.idCategoria === idCategoria);
-    return categoria ? categoria.nombre : "Desconocida";
+  const handleCreate = () => {
+    setPoiToEdit(null);
+    setShowModal(true);
   };
-
-  // --- MÉTODOS ---
-
   const handleEdit = (id) => {
-    showMessage(`Abriendo modal para editar POI ID: ${id}`, "info");
+    const p = pois.find((x) => x.idPunto === id);
+    if (p) {
+      setPoiToEdit(p);
+      setShowModal(true);
+    }
   };
 
-  const confirmDelete = (id) => {
-    const poi = lugares.find((p) => p.idLugar === id);
-    const action = poi?.estatus ? "desactivar" : "eliminar";
-    setConfirmingId({ id, action });
+  const handleToggleStatus = async (poi) => {
+    if (loading.action) return;
+    setLoading((p) => ({ ...p, action: true }));
+    try {
+      const cleanData = { ...poi, estatus: !poi.estatus };
+      delete cleanData.idLugarNavigation; // Limpiar navegación para evitar error 400
+      await updatePOI(poi.idPunto, cleanData);
+      showMessage(
+        `Punto ${!poi.estatus ? "activado" : "desactivado"}`,
+        "success"
+      );
+      await getPOIs();
+    } catch (e) {
+      showMessage("Error al cambiar estatus", "danger");
+    } finally {
+      setLoading((p) => ({ ...p, action: false }));
+    }
+  };
+
+  const savePOI = async (data, isEditing) => {
+    setLoading((p) => ({ ...p, action: true }));
+    try {
+      if (isEditing) await updatePOI(data.idPunto, data);
+      else await createPOI(data);
+      showMessage("Guardado exitosamente", "success");
+      setShowModal(false);
+      await getPOIs();
+    } catch (e) {
+      showMessage("Error al guardar", "danger");
+    } finally {
+      setLoading((p) => ({ ...p, action: false }));
+    }
   };
 
   const executeDelete = async () => {
-    const { id, action } = confirmingId;
-    setConfirmingId(null);
-
-    setLoading(true);
+    setLoading((p) => ({ ...p, action: true }));
     try {
-      await deleteLugar(id);
-      showMessage(
-        `POI ID ${id} ha sido ${action === "desactivar" ? "desactivado" : "eliminado"}.`,
-        "success"
-      );
-    } catch (error) {
-      showMessage(`Error al ${action} el POI.`, "danger");
-      console.error(error);
+      await deletePOI(confirmingId);
+      showMessage("Eliminado exitosamente", "success");
+      setConfirmingId(null);
+      await getPOIs();
+    } catch (e) {
+      showMessage("Error al eliminar", "danger");
     } finally {
-      setLoading(false);
+      setLoading((p) => ({ ...p, action: false }));
     }
   };
 
-  const cancelDelete = () => {
-    showMessage("Acción cancelada", "info");
-    setConfirmingId(null);
-  };
-
-  const handleViewMap = (lat, lng) => {
-    if (lat && lng) {
-      window.open(`https://www.google.com/maps?q=${lat},${lng}`, "_blank");
-    } else {
-      showMessage("No hay ubicación disponible.", "warning");
-    }
-  };
-
-  const handleCreate = () => {
-    showMessage("Abriendo modal para crear nuevo POI", "success");
-  };
-
-  // POI actual en confirmación
-  const currentConfirmingPoi = confirmingId
-    ? lugares.find((p) => p.idLugar === confirmingId.id)
-    : null;
-
-  const confirmationMessage = currentConfirmingPoi
-    ? `¿Seguro que deseas ${confirmingId.action} el POI "${currentConfirmingPoi.nombre}" (ID: ${currentConfirmingPoi.idLugar})?`
-    : "";
-
-  // LOADING UI
-  if (loading) {
-    return (
-      <Container fluid className="p-4 text-center">
-        <Spinner animation="border" />
-        <p className="mt-3">Cargando Puntos de Interés...</p>
-      </Container>
-    );
-  }
+  const filteredPois = pois.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    const placeName = p.idLugarNavigation?.nombre?.toLowerCase() || "";
+    const tag = p.etiqueta?.toLowerCase() || "";
+    return placeName.includes(term) || tag.includes(term);
+  });
 
   return (
-    <Container fluid style={{ padding: "0px" }}>
+    <Container
+      fluid
+      style={{
+        backgroundColor: kairosTheme.bodyBg,
+        minHeight: "100vh",
+        padding: "0",
+      }}
+    >
+      <style>{`.btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }`}</style>
+      <POIModal
+        show={showModal}
+        handleClose={() => setShowModal(false)}
+        savePOI={savePOI}
+        poi={poiToEdit}
+        lugares={lugaresDisponibles}
+        loading={loading.action}
+      />
       <MessageBox message={message} />
 
-      {/* ESTILOS */}
-      <style>{`
-        body {
-          background-color: ${kairosTheme.primaryColor};
-          color: ${kairosTheme.textDark};
-          font-family: 'Inter', sans-serif;
-        }
-
-        .header-pois {
-          background: linear-gradient(145deg, ${kairosTheme.secondaryColor}, ${kairosTheme.primaryColor});
-          padding: 35px;
-          border-radius: 14px;
-          margin-bottom: 30px;
-          color: ${kairosTheme.textDark};
-          display: flex;
-          justify-content: space-between;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-          border: 1px solid #dee2e6;
-        }
-
-        .table-container {
-          background-color: ${kairosTheme.secondaryColor};
-          border-radius: 8px;
-          overflow: hidden;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .btn-accent {
-          background-color: ${kairosTheme.accentColor};
-          border-color: ${kairosTheme.accentColor};
-          color: ${kairosTheme.textDark};
-          font-weight: 600;
-        }
-      `}</style>
-
-      <Container fluid className="p-4 p-sm-5">
-        {/* ENCABEZADO */}
-        <div className="header-pois">
-          <div className="d-flex align-items-center">
-            <Button variant="outline-dark" onClick={toggleSidebar}>
-              <i className="bi bi-list" />
-            </Button>
-            <span className="ms-3 fs-3 fw-bold">
-              <i className="bi bi-geo-alt-fill text-info me-2" />
-              Gestión de Puntos de Interés
-            </span>
-          </div>
-
-          <Button className="btn-accent" onClick={handleCreate}>
-            <i className="bi bi-plus-lg me-1" /> Nuevo POI
-          </Button>
+      <Container fluid className="p-4">
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
+            borderRadius: "16px",
+            padding: "2rem",
+            marginBottom: "2rem",
+            boxShadow: "0 8px 24px rgba(78, 204, 163, 0.3)",
+          }}
+        >
+          <Row className="align-items-center">
+            <Col md={8}>
+              <div className="d-flex align-items-center text-white">
+                <Trophy size={40} className="me-3" />
+                <div>
+                  <h1 className="mb-1 fw-bold" style={{ fontSize: "2rem" }}>
+                    Puntos de Interés Destacados
+                  </h1>
+                  <p className="mb-0 opacity-90">
+                    Gestiona los lugares más visitados y destacados.
+                  </p>
+                </div>
+              </div>
+            </Col>
+            <Col md={4} className="text-md-end">
+              <div className="d-flex gap-2 justify-content-end">
+                <Button
+                  onClick={loadData}
+                  disabled={loading.data}
+                  style={{
+                    backgroundColor: kairosTheme.info,
+                    border: "none",
+                    borderRadius: "12px",
+                    fontWeight: 600,
+                  }}
+                  className="btn-action"
+                >
+                  <RefreshCw size={20} className="me-2" /> Recargar
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={loading.data}
+                  style={{
+                    backgroundColor: kairosTheme.white,
+                    color: kairosTheme.primary,
+                    border: "none",
+                    borderRadius: "12px",
+                    fontWeight: 700,
+                  }}
+                  className="btn-action"
+                >
+                  <Plus size={20} className="me-2" /> Nuevo Destacado
+                </Button>
+              </div>
+            </Col>
+          </Row>
         </div>
 
-        {/* CONFIRMACIÓN */}
+        {/* Stats */}
+        <Row className="mb-4 g-3">
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm"
+              style={{
+                borderRadius: "12px",
+                borderLeft: `4px solid ${kairosTheme.primary}`,
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">
+                    Total Destacados
+                  </p>
+                  <h3 className="mb-0 fw-bold">{pois.length}</h3>
+                </div>
+                <Trophy size={32} color={kairosTheme.primary} />
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm"
+              style={{
+                borderRadius: "12px",
+                borderLeft: `4px solid ${kairosTheme.success}`,
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">Activos</p>
+                  <h3 className="mb-0 fw-bold">
+                    {pois.filter((p) => p.estatus).length}
+                  </h3>
+                </div>
+                <CheckCircle size={32} color={kairosTheme.success} />
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card
+              className="border-0 shadow-sm"
+              style={{
+                borderRadius: "12px",
+                borderLeft: `4px solid ${kairosTheme.warning}`,
+              }}
+            >
+              <Card.Body className="d-flex align-items-center justify-content-between">
+                <div>
+                  <p className="text-muted mb-1 fw-semibold">Alta Prioridad</p>
+                  <h3 className="mb-0 fw-bold">
+                    {pois.filter((p) => p.prioridad > 0).length}
+                  </h3>
+                </div>
+                <SortAsc size={32} color={kairosTheme.warning} />
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Search */}
+        <Card
+          className="border-0 shadow-sm mb-4"
+          style={{ borderRadius: "12px" }}
+        >
+          <Card.Body>
+            <InputGroup>
+              <InputGroup.Text style={{ backgroundColor: "white" }}>
+                <Search size={20} color={kairosTheme.primary} />
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Buscar por nombre de lugar o etiqueta..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
+          </Card.Body>
+        </Card>
+
+        {/* Delete Confirm */}
         {confirmingId && (
-          <Card className="shadow-lg mb-4 border-danger">
+          <Card
+            className="shadow-lg mb-4 border-0"
+            style={{
+              borderRadius: "12px",
+              borderLeft: `5px solid ${kairosTheme.danger}`,
+              backgroundColor: `${kairosTheme.danger}10`,
+            }}
+          >
             <Card.Body className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">{confirmationMessage}</h5>
+              <div className="d-flex align-items-center">
+                <XCircle
+                  size={32}
+                  color={kairosTheme.danger}
+                  className="me-3"
+                />
+                <div>
+                  <h5 className="mb-1 fw-bold">Confirmar Eliminación</h5>
+                  <p className="mb-0">¿Eliminar este punto destacado?</p>
+                </div>
+              </div>
               <div>
                 <Button
                   variant="danger"
-                  className="me-3"
                   onClick={executeDelete}
+                  className="me-2"
                 >
-                  <i className="bi bi-trash-fill me-1" />
-                  Sí,{" "}
-                  {confirmingId.action === "desactivar"
-                    ? "Desactivar"
-                    : "Eliminar"}
+                  <Trash2 size={16} /> Eliminar
                 </Button>
-                <Button variant="outline-secondary" onClick={cancelDelete}>
-                  Cancelar
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setConfirmingId(null)}
+                >
+                  <X size={16} /> Cancelar
                 </Button>
               </div>
             </Card.Body>
           </Card>
         )}
 
-        {/* TABLA */}
-        <Card className="table-container">
-          <Card.Body className="p-0">
-            <div className="table-responsive">
-              {lugares?.length ? (
-                <Table striped hover className="align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Categoría</th>
-                      <th className="text-center">Estado</th>
-                      <th className="text-center">Ubicación</th>
-                      <th className="text-center">Acciones</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {lugares.map((p) => (
-                      <tr key={p.idLugar}>
-                        <td>{p.idLugar}</td>
-                        <td>{p.nombre}</td>
-                        <td>{getCategoryName(p.idCategoria)}</td>
-
-                        <td className="text-center">
-                          <span
-                            className={`badge px-3 py-2 ${
-                              p.estatus ? "bg-success" : "bg-danger"
-                            }`}
-                          >
-                            {p.estatus ? "Activo" : "Inactivo"}
-                          </span>
-                        </td>
-
-                        <td className="text-center">
+        {/* Table */}
+        <Card
+          className="border-0 shadow-sm"
+          style={{ borderRadius: "12px", overflow: "hidden" }}
+        >
+          <div className="table-responsive">
+            {loading.data ? (
+              <div className="text-center p-5">
+                <Spinner
+                  animation="border"
+                  style={{ color: kairosTheme.primary }}
+                />
+              </div>
+            ) : (
+              <Table
+                className="align-middle mb-0"
+                style={{ minWidth: "800px" }}
+              >
+                <thead style={{ backgroundColor: kairosTheme.light }}>
+                  <tr>
+                    <th className="p-3">Prioridad</th>
+                    <th className="p-3">Lugar</th>
+                    <th className="p-3">Etiqueta (Badge)</th>
+                    <th className="p-3">Descripción</th>
+                    <th className="p-3 text-center">Estado</th>
+                    <th className="p-3 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPois.map((p) => (
+                    <tr key={p.idPunto} style={{ transition: "0.2s" }}>
+                      <td className="p-3">
+                        <Badge bg="secondary">#{p.prioridad}</Badge>
+                      </td>
+                      <td className="p-3">
+                        <div className="fw-bold">
+                          {p.idLugarNavigation?.nombre || `ID: ${p.idLugar}`}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge bg="warning" text="dark">
+                          <Award size={12} className="me-1" /> {p.etiqueta}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-muted small">
+                        {p.descripcion || "-"}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span
+                          style={{
+                            padding: "0.3rem 0.8rem",
+                            borderRadius: "20px",
+                            backgroundColor: p.estatus
+                              ? `${kairosTheme.success}15`
+                              : `${kairosTheme.danger}15`,
+                            color: p.estatus
+                              ? kairosTheme.success
+                              : kairosTheme.danger,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {p.estatus ? "Visible" : "Oculto"}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="d-flex gap-2 justify-content-center">
                           <Button
                             size="sm"
-                            variant="outline-primary"
-                            onClick={() => handleViewMap(p.latitud, p.longitud)}
-                          >
-                            <i className="bi bi-pin-map-fill" /> Ver Mapa
-                          </Button>
-                        </td>
-
-                        <td className="text-center">
-                          <Button
-                            size="sm"
-                            className="me-2"
+                            onClick={() => handleToggleStatus(p)}
+                            className="btn-action"
                             style={{
-                              backgroundColor: kairosTheme.editButtonColor,
-                              color: "#fff",
+                              backgroundColor: p.estatus
+                                ? "white"
+                                : kairosTheme.success,
+                              borderColor: kairosTheme.success,
+                              color: p.estatus
+                                ? kairosTheme.secondary
+                                : "white",
                             }}
-                            onClick={() => handleEdit(p.idLugar)}
                           >
-                            <i className="bi bi-pencil-square" />
+                            <Power size={16} />
                           </Button>
-
                           <Button
                             size="sm"
-                            variant={p.estatus ? "danger" : "success"}
-                            onClick={() => confirmDelete(p.idLugar)}
+                            onClick={() => handleEdit(p.idPunto)}
+                            className="btn-action"
+                            style={{
+                              backgroundColor: kairosTheme.info,
+                              color: "white",
+                            }}
                           >
-                            <i
-                              className={`bi ${
-                                p.estatus ? "bi-x-lg" : "bi-check-lg"
-                              }`}
-                            />
+                            <Pencil size={16} />
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              ) : (
-                <div className="text-center py-5 text-secondary">
-                  <i
-                    className="bi bi-geo-alt"
-                    style={{ fontSize: "48px", color: "#ccc" }}
-                  />
-                  <p className="lead mt-3">
-                    No hay Puntos de Interés registrados.
-                  </p>
-                </div>
-              )}
-            </div>
-          </Card.Body>
+                          <Button
+                            size="sm"
+                            onClick={() => setConfirmingId(p.idPunto)}
+                            className="btn-action"
+                            style={{
+                              backgroundColor: kairosTheme.danger,
+                              color: "white",
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredPois.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="text-center p-5 text-muted">
+                        No hay puntos destacados registrados.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            )}
+          </div>
         </Card>
       </Container>
     </Container>
   );
 };
+
+const GestionPOIs = () => (
+  <POIsState>
+    <GestionPOIsContent />
+  </POIsState>
+);
 
 export default GestionPOIs;

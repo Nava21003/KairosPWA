@@ -1,19 +1,19 @@
 import React, { useState, useContext } from "react";
 import { Row, Col, Card, Form, Button } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AuthContext from "../Context/Auth/AuthContext";
 
 const Login = () => {
-  // 1. Obtener la función 'login' del AuthContext
   const { login } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Nuevo estado para el loading
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -21,36 +21,38 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // 2. Llamar a la función de la API de login
       const response = await login({
         correo: email,
         contrasena: password,
       });
 
-      // Si el login fue exitoso (el contexto ya maneja el almacenamiento del token/usuario)
       if (response && response.success) {
-        // Redireccionar al panel de administración o dashboard
-        navigate("/admin");
+        const fromPath = location.state?.from?.pathname;
+
+        const roleName =
+          response.user?.idRolNavigation?.nombreRol ||
+          response.user?.nombreRol ||
+          response.user?.role ||
+          response.user?.rol;
+
+        const isAdmin = roleName?.toString().toLowerCase() === "Administrador";
+
+        const target = fromPath || (isAdmin ? "/admin" : "/");
+
+        navigate(target, { replace: true });
       } else {
-        // En caso de que la API devuelva éxito=false pero no lance error (poco común, pero seguro)
-        // Esto debería capturarse principalmente en el 'catch', pero es una salvaguarda.
         setError("Error de autenticación. Intenta de nuevo.");
       }
     } catch (err) {
-      // 3. Manejar errores de la API (401 Unauthorized, etc.)
       console.error("Fallo de Login en la API:", err);
 
-      // Usar el mensaje de error del backend si está disponible
       let errorMessage =
         "Ocurrió un error inesperado al intentar iniciar sesión.";
 
-      // Se ajusta la lógica de manejo de errores para ser más robusta
       if (err.response) {
         if (err.response.data && err.response.data.message) {
-          // El backend devuelve { success: false, message: "Credenciales inválidas" }
           errorMessage = err.response.data.message;
         } else if (err.response.data) {
-          // El backend devuelve un objeto de error genérico
           errorMessage = JSON.stringify(err.response.data);
         } else if (err.response.status === 401) {
           errorMessage =

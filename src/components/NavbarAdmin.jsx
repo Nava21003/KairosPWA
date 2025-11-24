@@ -1,24 +1,33 @@
-import React from "react";
+import React, { useContext } from "react"; // <--- 1. Agrega useContext
 import { Nav, Button } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
+import AuthContext from "../Context/Auth/AuthContext"; // <--- 2. Importa tu AuthContext
+
 import {
-  FaHome, // Dashboard
-  FaLayerGroup, // Categorías (Capas/Grupos)
-  FaHandshake, // Socios (Acuerdos/Negocios)
-  FaStore, // Lugares (Tiendas físicas)
-  FaMapMarkerAlt, // POIs (Puntos en mapa)
-  FaTags, // Promociones (Etiquetas/Ofertas)
-  FaUsers, // Usuarios
-  FaUserShield, // Roles (Seguridad/Escudo)
-  FaCog, // Configuración
-  FaSignOutAlt, // Salir
+  FaHome,
+  FaLayerGroup,
+  FaHeart,
+  FaHandshake,
+  FaStore,
+  FaRoute,
+  FaMapMarkerAlt,
+  FaTags,
+  FaUsers,
+  FaUserShield,
+  FaBell,
+  FaChartLine,
+  FaCog,
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 const NavbarAdmin = ({ sidebarOpen }) => {
   const navigate = useNavigate();
+  // 3. Extraemos la función logout del contexto
+  const { logout } = useContext(AuthContext);
 
   const handleLogout = () => {
-    navigate("/");
+    logout(); // <--- 4. Ejecutamos la limpieza de datos
+    navigate("/"); // <--- 5. Luego redirigimos
   };
 
   return (
@@ -41,6 +50,15 @@ const NavbarAdmin = ({ sidebarOpen }) => {
           justify-content: space-between;
         }
 
+        /* Scrollbar personalizado para el sidebar */
+        .sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+          background-color: rgba(255,255,255,0.2);
+          border-radius: 4px;
+        }
+
         .sidebar-collapsed { 
           width: 0;
           padding: 0;
@@ -59,12 +77,13 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         }
 
         .sidebar-divider {
-            font-size: 0.75rem;
+            font-size: 0.70rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             color: #6c757d;
-            margin: 15px 0 5px 10px;
+            margin: 20px 0 8px 10px;
             font-weight: 700;
+            opacity: 0.8;
         }
 
         .nav-link-kairos { 
@@ -87,7 +106,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
 
         .nav-link-kairos.active { 
           background: linear-gradient(90deg, #3e3e3e, #545454);
-          color: #4ecca3 !important; /* Un toque de color activo */
+          color: #4ecca3 !important;
           font-weight: 600;
           box-shadow: 0 4px 10px rgba(0,0,0,0.25);
         }
@@ -118,13 +137,13 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         <div className="sidebar-header mb-3 p-3">🏛️ Kairos Admin</div>
 
         <Nav className="flex-column px-3">
-          {/* SECCIÓN: PRINCIPAL */}
+          {/* === SECCIÓN: PRINCIPAL === */}
           <Nav.Link as={NavLink} to="/admin" end className="nav-link-kairos">
             <FaHome className="me-3" /> Dashboard
           </Nav.Link>
 
-          {/* SECCIÓN: GESTIÓN DE CONTENIDO */}
-          <div className="sidebar-divider">Gestión</div>
+          {/* === SECCIÓN: GESTIÓN DE CONTENIDO === */}
+          <div className="sidebar-divider">Gestión de Contenido</div>
 
           <Nav.Link
             as={NavLink}
@@ -136,18 +155,26 @@ const NavbarAdmin = ({ sidebarOpen }) => {
 
           <Nav.Link
             as={NavLink}
+            to="/admin/intereses"
+            className="nav-link-kairos"
+          >
+            <FaHeart className="me-3" /> Intereses
+          </Nav.Link>
+
+          <Nav.Link
+            as={NavLink}
             to="/admin/lugares"
             className="nav-link-kairos"
           >
             <FaStore className="me-3" /> Lugares
           </Nav.Link>
 
-          <Nav.Link
-            as={NavLink}
-            to="/admin/gestion"
-            className="nav-link-kairos"
-          >
-            <FaMapMarkerAlt className="me-3" /> Puntos de Interés (POIs)
+          <Nav.Link as={NavLink} to="/admin/rutas" className="nav-link-kairos">
+            <FaRoute className="me-3" /> Rutas
+          </Nav.Link>
+
+          <Nav.Link as={NavLink} to="/admin/pois" className="nav-link-kairos">
+            <FaMapMarkerAlt className="me-3" /> Puntos de Interés
           </Nav.Link>
 
           <Nav.Link
@@ -158,7 +185,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             <FaTags className="me-3" /> Promociones
           </Nav.Link>
 
-          {/* SECCIÓN: ADMINISTRACIÓN */}
+          {/* === SECCIÓN: ADMINISTRACIÓN === */}
           <div className="sidebar-divider">Administración</div>
 
           <Nav.Link as={NavLink} to="/admin/socios" className="nav-link-kairos">
@@ -177,7 +204,26 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             <FaUserShield className="me-3" /> Roles y Permisos
           </Nav.Link>
 
-          {/* SECCIÓN: SISTEMA */}
+          {/* === SECCIÓN: COMUNICACIÓN & DATOS (NUEVO) === */}
+          <div className="sidebar-divider">Comunicación & Monitoreo</div>
+
+          <Nav.Link
+            as={NavLink}
+            to="/admin/notificaciones"
+            className="nav-link-kairos"
+          >
+            <FaBell className="me-3" /> Notificaciones
+          </Nav.Link>
+
+          <Nav.Link
+            as={NavLink}
+            to="/admin/actividad"
+            className="nav-link-kairos"
+          >
+            <FaChartLine className="me-3" /> Actividad Global
+          </Nav.Link>
+
+          {/* === SECCIÓN: SISTEMA === */}
           <div className="sidebar-divider">Sistema</div>
 
           <Nav.Link

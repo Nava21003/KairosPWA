@@ -62,9 +62,14 @@ export const GET_USO_DIGITAL_BY_USER = 'GET_USO_DIGITAL_BY_USER';
 export const CREATE_USO_DIGITAL = 'CREATE_USO_DIGITAL';
 
 // Socios
-// Socios
 export const CREATE_SOCIO = 'CREATE_SOCIO';
 export const GET_SOCIO_BY_ID = 'GET_SOCIO_BY_ID';
 export const GET_SOCIOS = 'GET_SOCIOS';
 export const UPDATE_SOCIO = 'UPDATE_SOCIO';
 export const DELETE_SOCIO = 'DELETE_SOCIO';
+
+// Intereses
+export const GET_INTERESES = 'GET_INTERESES';
+export const CREATE_INTERES = 'CREATE_INTERES';
+export const UPDATE_INTERES = 'UPDATE_INTERES';
+export const DELETE_INTERES = 'DELETE_INTERES';

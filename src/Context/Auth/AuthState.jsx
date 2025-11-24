@@ -7,10 +7,25 @@ import { LOGIN_SUCCESS, REGISTER_SUCCESS, LOGOUT } from "../types";
 const API_AUTH_URL = "http://localhost:5219/api/Auth";
 
 const AuthState = ({ children }) => {
+  // Try to load persisted auth from localStorage or sessionStorage
+  const loadPersisted = () => {
+    try {
+      const raw =
+        localStorage.getItem("auth") || sessionStorage.getItem("auth");
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error("Error parsing persisted auth:", err);
+      return null;
+    }
+  };
+
+  const persisted = loadPersisted();
+
   const initialState = {
-    user: null,
-    token: null,
-    isAuthenticated: false,
+    user: persisted?.user || null,
+    token: persisted?.token || null,
+    isAuthenticated: !!persisted?.token,
   };
 
   const [state, dispatch] = useReducer(AuthReduce, initialState);
@@ -22,10 +37,24 @@ const AuthState = ({ children }) => {
   const login = async (credenciales) => {
     try {
       const res = await axios.post(`${API_AUTH_URL}/login`, credenciales);
-      dispatch({
-        type: LOGIN_SUCCESS,
-        payload: res.data,
-      });
+      dispatch({ type: LOGIN_SUCCESS, payload: res.data });
+
+      // By default persist in localStorage; if caller passed remember=false store in sessionStorage
+      // The API caller can include a `remember` boolean in the credentials object or pass separately.
+      const remember = credenciales?.remember !== false; // default true
+      try {
+        const serialized = JSON.stringify(res.data);
+        if (remember) {
+          localStorage.setItem("auth", serialized);
+          sessionStorage.removeItem("auth");
+        } else {
+          sessionStorage.setItem("auth", serialized);
+          localStorage.removeItem("auth");
+        }
+      } catch (err) {
+        console.warn("No se pudo persistir el auth:", err);
+      }
+
       return res.data;
     } catch (error) {
       console.error(
@@ -62,6 +91,12 @@ const AuthState = ({ children }) => {
    */
   const logout = () => {
     dispatch({ type: LOGOUT });
+    try {
+      localStorage.removeItem("auth");
+      sessionStorage.removeItem("auth");
+    } catch (err) {
+      console.warn("Error clearing persisted auth:", err);
+    }
   };
 
   return (

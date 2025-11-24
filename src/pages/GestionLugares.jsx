@@ -38,6 +38,8 @@ import {
   Info, // Icono Info
   Star, // Icono Patrocinado
   Map, // Icono Mapa
+  Globe, // Icono Coordenadas
+  AlignLeft, // Icono Descripción
 } from "lucide-react";
 
 // --- 1. CONTEXTO Y REDUCER (Integrados) ---
@@ -46,7 +48,7 @@ const LugaresContext = createContext();
 
 // Tipos de Acciones
 const GET_LUGARES = "GET_LUGARES";
-const GET_CATEGORIAS = "GET_CATEGORIAS"; // <--- NUEVO
+const GET_CATEGORIAS = "GET_CATEGORIAS";
 const CREATE_LUGAR = "CREATE_LUGAR";
 const UPDATE_LUGAR = "UPDATE_LUGAR";
 const DELETE_LUGAR = "DELETE_LUGAR";
@@ -70,7 +72,6 @@ const LugaresReducer = (state, action) => {
       };
     }
     case GET_CATEGORIAS: {
-      // <--- NUEVO CASE
       const dataToUse = extractData(payload);
       return {
         ...state,
@@ -98,12 +99,12 @@ const LugaresReducer = (state, action) => {
 // --- 2. STATE (Lógica de Negocio) ---
 
 const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
-const API_CATEGORIAS_URL = "http://localhost:5219/api/Categorias"; // <--- URL Categorias
+const API_CATEGORIAS_URL = "http://localhost:5219/api/Categorias";
 
 const LugaresState = ({ children }) => {
   const initialState = {
     lugares: [],
-    categorias: [], // <--- Estado inicial para categorías
+    categorias: [],
   };
 
   const [state, dispatch] = useReducer(LugaresReducer, initialState);
@@ -119,7 +120,6 @@ const LugaresState = ({ children }) => {
     }
   };
 
-  // <--- Nueva función para obtener categorías
   const getCategorias = async () => {
     try {
       const res = await axios.get(API_CATEGORIAS_URL);
@@ -166,9 +166,9 @@ const LugaresState = ({ children }) => {
     <LugaresContext.Provider
       value={{
         lugares: state.lugares,
-        categorias: state.categorias, // <--- Exponemos categorías
+        categorias: state.categorias,
         getLugares,
-        getCategorias, // <--- Exponemos la función
+        getCategorias,
         createLugar,
         updateLugar,
         deleteLugar,
@@ -236,7 +236,6 @@ const MessageBox = ({ message }) => {
   );
 };
 
-// Actualizamos Modal para recibir 'categorias'
 const LugarModal = ({
   show,
   handleClose,
@@ -361,7 +360,6 @@ const LugarModal = ({
               </Form.Control.Feedback>
             </Form.Group>
 
-            {/* SELECCIÓN DE CATEGORÍA ACTUALIZADA */}
             <Form.Group as={Col} md={4}>
               <Form.Label className="fw-semibold">
                 <Hash size={16} className="me-1" /> Categoría *
@@ -473,7 +471,7 @@ const LugarModal = ({
                             : kairosTheme.danger,
                         }}
                       />
-                      {formData.estatus ? "Lugar Activo" : "Lugar Inactivo"}
+                      {formData.estatus ? "Lugar Abierto" : "Lugar Cerrado"}
                     </span>
                   }
                   checked={formData.estatus}
@@ -543,7 +541,6 @@ const LugarModal = ({
 };
 
 const GestionLugaresContent = () => {
-  // Extraemos categorias y getCategorias del context
   const {
     lugares = [],
     categorias = [],
@@ -569,7 +566,6 @@ const GestionLugaresContent = () => {
     setLoading((prev) => ({ ...prev, lugares: true }));
     setError(null);
     try {
-      // Cargamos Lugares y Categorías en paralelo
       await Promise.all([getLugares(), getCategorias()]);
       setDataLoaded(true);
     } catch (error) {
@@ -719,7 +715,7 @@ const GestionLugaresContent = () => {
         saveLugar={saveLugar}
         lugar={lugarToEdit}
         loading={loading.action}
-        categorias={categorias} // <--- Pasamos categorías al Modal
+        categorias={categorias}
       />
       <MessageBox message={message} />
 
@@ -978,13 +974,33 @@ const GestionLugaresContent = () => {
           style={{ borderRadius: "12px", overflow: "hidden" }}
         >
           <div className="table-responsive">
-            <Table className="align-middle mb-0" style={{ minWidth: "900px" }}>
+            {/* Aumenté el minWidth para que quepan las nuevas columnas */}
+            <Table className="align-middle mb-0" style={{ minWidth: "1200px" }}>
               <thead style={{ backgroundColor: kairosTheme.light }}>
                 <tr>
                   <th className="p-3">ID</th>
-                  <th className="p-3">Lugar</th>
+                  <th className="p-3">
+                    <div className="d-flex align-items-center">
+                      <MapPin size={16} className="me-2" /> Lugar
+                    </div>
+                  </th>
+                  <th className="p-3">
+                    <div className="d-flex align-items-center">
+                      <AlignLeft size={16} className="me-2" /> Descripción
+                    </div>
+                  </th>
                   <th className="p-3">Categoría</th>
+                  <th className="p-3">
+                    <div className="d-flex align-items-center">
+                      <Clock size={16} className="me-2" /> Horario
+                    </div>
+                  </th>
                   <th className="p-3">Ubicación</th>
+                  <th className="p-3">
+                    <div className="d-flex align-items-center">
+                      <Globe size={16} className="me-2" /> Coordenadas
+                    </div>
+                  </th>
                   <th className="p-3 text-center">Patrocinado</th>
                   <th className="p-3 text-center">Estado</th>
                   <th className="p-3 text-center">Acciones</th>
@@ -1000,9 +1016,20 @@ const GestionLugaresContent = () => {
                     </td>
                     <td className="p-3">
                       <div className="fw-bold">{l.nombre}</div>
-                      <small className="text-muted">
-                        {l.horario || "Sin horario"}
-                      </small>
+                    </td>
+                    {/* COLUMNA DESCRIPCIÓN (NUEVA) */}
+                    <td className="p-3" style={{ maxWidth: "250px" }}>
+                      <div
+                        className="text-truncate"
+                        title={l.descripcion || "Sin descripción"}
+                        style={{ color: "#666" }}
+                      >
+                        {l.descripcion || (
+                          <span className="fst-italic text-muted">
+                            - Sin descripción -
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">
                       <Badge bg="info">
@@ -1010,13 +1037,31 @@ const GestionLugaresContent = () => {
                           `ID: ${l.idCategoria}`}
                       </Badge>
                     </td>
+                    {/* COLUMNA HORARIO (SEPARADA) */}
+                    <td className="p-3">
+                      <small className="text-muted font-monospace">
+                        {l.horario || "N/A"}
+                      </small>
+                    </td>
                     <td className="p-3">
                       <div
                         className="text-truncate"
-                        style={{ maxWidth: "200px" }}
+                        style={{ maxWidth: "150px" }}
                         title={l.direccion}
                       >
                         {l.direccion}
+                      </div>
+                    </td>
+                    {/* COLUMNA COORDENADAS (NUEVA) */}
+                    <td className="p-3">
+                      <div style={{ fontSize: "0.85rem" }}>
+                        <div className="d-flex align-items-center text-muted">
+                          <span className="fw-bold me-1">Lat:</span> {l.latitud}
+                        </div>
+                        <div className="d-flex align-items-center text-muted">
+                          <span className="fw-bold me-1">Lon:</span>{" "}
+                          {l.longitud}
+                        </div>
                       </div>
                     </td>
                     <td className="p-3 text-center">
@@ -1040,7 +1085,7 @@ const GestionLugaresContent = () => {
                             : kairosTheme.danger,
                         }}
                       >
-                        {l.estatus ? "Activo" : "Inactivo"}
+                        {l.estatus ? "Abierto" : "Cerrado"}
                       </span>
                     </td>
                     <td className="p-3 text-center">
@@ -1056,6 +1101,9 @@ const GestionLugaresContent = () => {
                             borderColor: kairosTheme.success,
                             color: l.estatus ? kairosTheme.secondary : "white",
                           }}
+                          title={
+                            l.estatus ? "Desactivar Lugar" : "Activar Lugar"
+                          }
                         >
                           <Power size={16} />
                         </Button>
@@ -1067,6 +1115,7 @@ const GestionLugaresContent = () => {
                             backgroundColor: kairosTheme.info,
                             color: "white",
                           }}
+                          title="Editar"
                         >
                           <Pencil size={16} />
                         </Button>
@@ -1078,6 +1127,7 @@ const GestionLugaresContent = () => {
                             backgroundColor: kairosTheme.danger,
                             color: "white",
                           }}
+                          title="Eliminar"
                         >
                           <Trash2 size={16} />
                         </Button>
@@ -1087,7 +1137,7 @@ const GestionLugaresContent = () => {
                 ))}
                 {filteredLugares.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan="7" className="text-center p-5 text-muted">
+                    <td colSpan="10" className="text-center p-5 text-muted">
                       No se encontraron lugares
                     </td>
                   </tr>

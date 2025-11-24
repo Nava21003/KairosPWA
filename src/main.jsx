@@ -11,6 +11,7 @@ import LugaresState from "./Context/Lugares/LugaresState.jsx";
 import PromocionesState from "./Context/Promociones/PromocionesState.jsx";
 import UserState from "./Context/User/UserState.jsx";
 import CategoriasState from "./Context/Categorias/CategoriasState.jsx";
+import InteresesState from "./Context/Intereses/InteresesState.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -19,9 +20,11 @@ createRoot(document.getElementById("root")).render(
         <PromocionesState>
           <LugaresState>
             <UserState>
-              <CategoriasState>
-                <RouterProvider router={router} />
-              </CategoriasState>
+              <InteresesState>
+                <CategoriasState>
+                  <RouterProvider router={router} />
+                </CategoriasState>
+              </InteresesState>
             </UserState>
           </LugaresState>
         </PromocionesState>
