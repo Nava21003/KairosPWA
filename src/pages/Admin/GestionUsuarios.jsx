@@ -32,10 +32,10 @@ import {
   Calendar,
 } from "lucide-react";
 
-import UserContext from "../Context/User/UserContext";
-import UserState from "../Context/User/UserState";
-import RoleContext from "../Context/Roles/RoleContext";
-import RoleState from "../Context/Roles/RoleState";
+import UserContext from "../../Context/User/UserContext";
+import UserState from "../../Context/User/UserState";
+import RoleContext from "../../Context/Roles/RoleContext";
+import RoleState from "../../Context/Roles/RoleState";
 
 const kairosTheme = {
   primary: "#4ecca3",

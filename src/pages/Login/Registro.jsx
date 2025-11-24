@@ -1,8 +1,8 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import AuthContext from "../Context/Auth/AuthContext";
-import RoleContext from "../Context/Roles/RoleContext";
+import AuthContext from "../../Context/Auth/AuthContext";
+import RoleContext from "../../Context/Roles/RoleContext";
 
 const ADMIN_PASSWORD_GATE = "admin1234";
 

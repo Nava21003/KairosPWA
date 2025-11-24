@@ -21,11 +21,11 @@ import {
 } from "recharts";
 
 // ASEGÚRATE QUE ESTAS RUTAS SON CORRECTAS
-import PromocionesContext from "../Context/Promociones/PromocionesContext";
-import LugaresContext from "../Context/Lugares/LugaresContext";
-import UserContext from "../Context/User/UserContext";
-import ActividadesContext from "../Context/Actividades/ActividadesContext";
-import AuthContext from "../Context/Auth/AuthContext";
+import PromocionesContext from "../../Context/Promociones/PromocionesContext";
+import LugaresContext from "../../Context/Lugares/LugaresContext";
+import UserContext from "../../Context/User/UserContext";
+import ActividadesContext from "../../Context/Actividades/ActividadesContext";
+import AuthContext from "../../Context/Auth/AuthContext";
 
 // 🎨 TEMA KAIROS (Light Mode con Neumorfismo sutil)
 const kairosLightTheme = {

@@ -23,8 +23,8 @@ import {
   Zap,
   Search,
 } from "lucide-react";
-import RoleContext from "../Context/Roles/RoleContext";
-import RoleState from "../Context/Roles/RoleState";
+import RoleContext from "../../Context/Roles/RoleContext";
+import RoleState from "../../Context/Roles/RoleState";
 
 const kairosTheme = {
   primary: "#4ecca3",

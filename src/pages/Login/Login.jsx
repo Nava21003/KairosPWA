@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { Row, Col, Card, Form, Button } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
-import AuthContext from "../Context/Auth/AuthContext";
+import AuthContext from "../../Context/Auth/AuthContext";
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -35,7 +35,7 @@ const Login = () => {
           response.user?.role ||
           response.user?.rol;
 
-        const isAdmin = roleName?.toString().toLowerCase() === "Administrador";
+        const isAdmin = roleName?.toString().toLowerCase() === "administrador";
 
         const target = fromPath || (isAdmin ? "/admin" : "/");
 

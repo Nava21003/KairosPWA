@@ -1,27 +1,27 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import NotFound from "./NotFound";
-import Login from "./Login";
-import Explorar from "./Explorar";
-import LayoutPublic from "../layout/LayoutPublic";
-import LayoutAdmin from "../layout/LayoutAdmin";
-import RequireAdmin from "../components/RequireAdmin";
-import Dashboard from "./Dashboard";
-import Home from "./Home";
-import NotFoundAdmin from "./NotFoundAdmind";
-import Registro from "./Registro";
+import NotFound from "../Error/NotFound";
+import Login from "../Login/Login";
+import Explorar from "../Home/Explorar";
+import LayoutPublic from "../../layout/LayoutPublic";
+import LayoutAdmin from "../../layout/LayoutAdmin";
+import RequireAdmin from "../../components/RequireAdmin";
+import Home from "../Home/Home";
+import NotFoundAdmin from "../Error/NotFoundAdmind";
+import Registro from "../Login/Registro";
 
 // Importaciones de Gestión (Admin)
-import Usuarios from "./GestionUsuarios";
-import Roles from "./GestionRoles";
-import GestionCategorias from "./GestionCategorias";
-import GestionSocios from "./GestionSocios";
-import GestionLugares from "./GestionLugares";
-import GestionPromociones from "./GestionPromociones";
-import GestionRutas from "./GestionRutas";
-import GestionPOIs from "./GestionPOIs";
-import GestionIntereses from "./GestionIntereses";
-import GestionNotificaciones from "./GestionNotificaciones";
-import MonitorActividad from "./MonitorActividad";
+import Usuarios from "../Admin/GestionUsuarios";
+import Roles from "../Admin/GestionRoles";
+import GestionCategorias from "../Admin/GestionCategorias";
+import GestionSocios from "../Admin/GestionSocios";
+import GestionLugares from "../Admin/GestionLugares";
+import GestionPromociones from "../Admin/GestionPromociones";
+import GestionRutas from "../Admin/GestionRutas";
+import GestionPOIs from "../Admin/GestionPOIs";
+import GestionIntereses from "../Admin/GestionIntereses";
+import GestionNotificaciones from "../Admin/GestionNotificaciones";
+import MonitorActividad from "../Admin/MonitorActividad";
+import Dashboard from "../Admin/Dashboard";
 
 export const router = createBrowserRouter([
   {

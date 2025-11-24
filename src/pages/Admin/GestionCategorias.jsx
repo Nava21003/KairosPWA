@@ -30,8 +30,8 @@ import {
   Power, // <--- 1. Nuevo Icono Agregado
 } from "lucide-react";
 
-import CategoriasContext from "../Context/Categorias/CategoriasContext";
-import CategoriasState from "../Context/Categorias/CategoriasState";
+import CategoriasContext from "../../Context/Categorias/CategoriasContext";
+import CategoriasState from "../../Context/Categorias/CategoriasState";
 
 const kairosTheme = {
   primary: "#4ecca3",
