@@ -27,7 +27,7 @@ import {
   Filter,
   RefreshCw,
   Layers,
-  Power, // <--- 1. Nuevo Icono Agregado
+  Power,
 } from "lucide-react";
 
 import CategoriasContext from "../../Context/Categorias/CategoriasContext";
@@ -346,7 +346,6 @@ const GestionCategoriasContent = () => {
     }
   };
 
-  // --- 2. Función lógica para cambiar estatus ---
   const handleToggleStatus = async (categoria) => {
     if (loading.action) return;
 
@@ -377,7 +376,6 @@ const GestionCategoriasContent = () => {
       setLoading((prev) => ({ ...prev, action: false }));
     }
   };
-  // ----------------------------------------------
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -414,7 +412,7 @@ const GestionCategoriasContent = () => {
     try {
       await deleteCategoria(idToDelete);
       showMessage(`Categoría eliminada exitosamente`, "success");
-      await getCategorias(); // Recargar lista
+      await getCategorias();
     } catch (error) {
       showMessage(
         `Error al eliminar categoría: ${error.message || "Error desconocido"}`,
@@ -516,7 +514,6 @@ const GestionCategoriasContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header Section */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -711,7 +708,6 @@ const GestionCategoriasContent = () => {
           </Col>
         </Row>
 
-        {/* Search & Filters */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px", animation: "fadeIn 0.9s ease-out" }}
@@ -777,7 +773,6 @@ const GestionCategoriasContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Confirm Delete Card */}
         {confirmingId && (
           <Card
             className="shadow-lg mb-4 border-0"
@@ -827,7 +822,6 @@ const GestionCategoriasContent = () => {
           </Card>
         )}
 
-        {/* Tabla de Datos */}
         <Card
           className="border-0 shadow-sm"
           style={{
@@ -992,7 +986,6 @@ const GestionCategoriasContent = () => {
                       </td>
                       <td style={{ padding: "1rem" }} className="text-center">
                         <div className="d-flex gap-2 justify-content-center">
-                          {/* --- 3. Nuevo Botón de Estatus --- */}
                           <Button
                             size="sm"
                             onClick={() => handleToggleStatus(c)}
@@ -1081,7 +1074,6 @@ const GestionCategoriasContent = () => {
   );
 };
 
-// Contenedor Principal
 const GestionCategorias = () => {
   return (
     <CategoriasState>

@@ -280,7 +280,6 @@ const POIModal = ({ show, handleClose, savePOI, poi, lugares, loading }) => {
 };
 
 const GestionPOIsContent = () => {
-  // Consumimos el contexto importado (ya NO se define aquí)
   const {
     pois,
     lugaresDisponibles,
@@ -312,7 +311,6 @@ const GestionPOIsContent = () => {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line
   }, []);
 
   const showMessage = (text, type = "info") => {
@@ -344,7 +342,6 @@ const GestionPOIsContent = () => {
         `Punto ${!poi.estatus ? "activado" : "desactivado"}`,
         "success"
       );
-      // Opcional si tu reducer actualiza localmente, si no, recargamos:
       await getPOIs();
     } catch (e) {
       showMessage("Error al cambiar estatus", "danger");
@@ -467,7 +464,6 @@ const GestionPOIsContent = () => {
           </Row>
         </div>
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -528,7 +524,6 @@ const GestionPOIsContent = () => {
           </Col>
         </Row>
 
-        {/* Search */}
         <Card
           className="border-0 shadow-sm mb-4"
           style={{ borderRadius: "12px" }}
@@ -548,7 +543,6 @@ const GestionPOIsContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Delete Confirm */}
         {confirmingId && (
           <Card
             className="shadow-lg mb-4 border-0"
@@ -589,7 +583,6 @@ const GestionPOIsContent = () => {
           </Card>
         )}
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}
@@ -714,7 +707,6 @@ const GestionPOIsContent = () => {
   );
 };
 
-// Envolvemos el componente con el State Provider importado
 const GestionPOIs = () => (
   <PuntosInteresState>
     <GestionPOIsContent />

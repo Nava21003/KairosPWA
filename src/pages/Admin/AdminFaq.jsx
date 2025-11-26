@@ -29,11 +29,9 @@ import {
   X,
 } from "lucide-react";
 
-// Importamos el Contexto y State de FAQ
 import FaqContext from "../../Context/Faq/FaqContext";
 import FaqState from "../../Context/Faq/FaqState";
 
-// --- TEMA VISUAL ---
 const kairosTheme = {
   primary: "#1e4d2b",
   secondary: "#6c757d",
@@ -46,16 +44,12 @@ const kairosTheme = {
 };
 
 const AdminFaqContent = () => {
-  // 1. Consumir Contexto
   const { faqs, getFaqs, createFaq, updateFaq, deleteFaq } =
     useContext(FaqContext);
 
-  // 2. Estados Locales
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
-
-  // Estado para Modal (Crear/Editar)
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentFaq, setCurrentFaq] = useState({
@@ -67,10 +61,8 @@ const AdminFaqContent = () => {
     estatus: true,
   });
 
-  // 3. Carga Inicial
   useEffect(() => {
     handleRefresh();
-    // eslint-disable-next-line
   }, []);
 
   const handleRefresh = async () => {
@@ -86,7 +78,6 @@ const AdminFaqContent = () => {
     }
   };
 
-  // 4. Manejadores de Modal
   const handleOpenModal = (faq = null) => {
     if (faq) {
       setIsEditing(true);
@@ -110,11 +101,9 @@ const AdminFaqContent = () => {
     setError(null);
   };
 
-  // 5. Manejadores de CRUD
   const handleSave = async (e) => {
     e.preventDefault();
 
-    // Validación simple
     if (!currentFaq.pregunta || !currentFaq.respuesta) {
       alert("La pregunta y la respuesta son obligatorias.");
       return;
@@ -125,12 +114,11 @@ const AdminFaqContent = () => {
       if (isEditing) {
         await updateFaq(currentFaq.idPregunta, currentFaq);
       } else {
-        // Eliminamos id para crear (si el backend lo autogenera)
         const { idPregunta, ...newFaq } = currentFaq;
         await createFaq(newFaq);
       }
       handleCloseModal();
-      handleRefresh(); // Recargar para ver cambios
+      handleRefresh();
     } catch (err) {
       console.error(err);
       alert("Error al guardar la información.");
@@ -160,14 +148,12 @@ const AdminFaqContent = () => {
   const handleToggleStatus = async (faq) => {
     try {
       await updateFaq(faq.idPregunta, { ...faq, estatus: !faq.estatus });
-      // Actualización optimista local o refresh
       handleRefresh();
-    } catch (err) {
+    } catch (error) {
       alert("Error al cambiar el estatus.");
     }
   };
 
-  // 6. Lógica de Filtrado
   const safeFaqs = Array.isArray(faqs) ? faqs : [];
 
   const filteredData = safeFaqs.filter((item) => {
@@ -183,7 +169,6 @@ const AdminFaqContent = () => {
     );
   });
 
-  // Categorías comunes para el select
   const categorias = [
     "General",
     "Suscripción",
@@ -212,7 +197,6 @@ const AdminFaqContent = () => {
       `}</style>
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: kairosTheme.headerGradient,
@@ -269,7 +253,6 @@ const AdminFaqContent = () => {
           </Alert>
         )}
 
-        {/* Filtros y Tabla */}
         <Card className="border-0 shadow-sm" style={{ borderRadius: "12px" }}>
           <Card.Header className="bg-white border-0 pt-4 px-4">
             <Row className="g-3 align-items-center">
@@ -440,7 +423,6 @@ const AdminFaqContent = () => {
           </Card.Body>
         </Card>
 
-        {/* === MODAL DE CREACIÓN / EDICIÓN === */}
         <Modal
           show={showModal}
           onHide={handleCloseModal}
@@ -568,7 +550,6 @@ const AdminFaqContent = () => {
   );
 };
 
-// Envuelve el contenido en el Estado para asegurar que funcione "plug & play"
 const AdminFaq = () => (
   <FaqState>
     <AdminFaqContent />

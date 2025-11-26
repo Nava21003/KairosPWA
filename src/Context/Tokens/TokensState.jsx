@@ -13,15 +13,11 @@ const API_TOKENS_URL = "http://localhost:5219/api/Tokens";
 
 const TokensState = ({ children }) => {
   const initialState = {
-    tokens: [], // Todos los tokens
-    userTokens: [], // Tokens de un usuario específico
+    tokens: [],
+    userTokens: [],
   };
 
   const [state, dispatch] = useReducer(TokensReduce, initialState);
-
-  // ----------------------------------
-  // Métodos para TokensController
-  // ----------------------------------
 
   /**
    * Obtiene todos los tokens (GET /api/Tokens)
@@ -53,7 +49,6 @@ const TokensState = ({ children }) => {
         "Error al obtener tokens por usuario:",
         error.response?.data || error.message
       );
-      // Si devuelve 404, devuelve un array vacío
       if (error.response?.status === 404) {
         dispatch({ type: GET_TOKENS_BY_USER, payload: [] });
         return [];
@@ -69,7 +64,6 @@ const TokensState = ({ children }) => {
     try {
       const response = await axios.post(API_TOKENS_URL, tokenData);
       dispatch({ type: CREATE_TOKEN, payload: response.data });
-      // Recargar la lista global si fuera necesario, o solo la del usuario: await getTokensByUsuario(tokenData.idUsuario);
       return response.data;
     } catch (error) {
       console.error(
@@ -96,8 +90,6 @@ const TokensState = ({ children }) => {
       throw error;
     }
   };
-
-  // El PUT no se incluye en el Reduce/State ya que es un caso de uso menos común para tokens
 
   return (
     <TokensContext.Provider

@@ -14,7 +14,6 @@ import {
   Check,
 } from "lucide-react";
 
-// URL Base de tu API
 const API_BASE_URL = "http://localhost:5219/";
 
 const CITY_OPTIONS = [
@@ -32,31 +31,22 @@ const CITY_OPTIONS = [
 ];
 
 const Explorar = () => {
-  // === 1. ESTADOS DE DATOS ===
   const [promociones, setPromociones] = useState([]);
   const [pois, setPois] = useState([]);
   const [lugares, setLugares] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // === 2. ESTADOS DE FILTRO ===
   const [filters, setFilters] = useState({
     city: "León, Guanajuato",
     categories: [],
   });
 
-  // Listas filtradas que se usarán en la UI
   const [filteredLugares, setFilteredLugares] = useState([]);
-  // NOTA: filteredPois se calcula dinámicamente o en useEffect, aquí lo haremos dinámico en el render para simplificar,
-  // pero para los índices es mejor tenerlo controlado.
-
-  // === 3. ESTADOS DE UI ===
   const [showModal, setShowModal] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
-  const [currentPoiIndex, setCurrentPoiIndex] = useState(0); // Índice para el slider de POIs
-  const [currentIndex, setCurrentIndex] = useState(0); // ScrollSpy
-
+  const [currentPoiIndex, setCurrentPoiIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
   const section3Ref = useRef(null);
@@ -74,7 +64,6 @@ const Explorar = () => {
     return cityObj ? cityObj.displayTitle : filters.city;
   };
 
-  // === 4. CARGAR DATOS ===
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -104,9 +93,7 @@ const Explorar = () => {
     fetchData();
   }, []);
 
-  // === 5. LÓGICA DE FILTRADO (LUGARES Y RESET DE INDICES) ===
   useEffect(() => {
-    // A. Filtrar Lugares (Directorio)
     let results = lugares;
     if (filters.city) {
       results = results.filter(
@@ -122,10 +109,9 @@ const Explorar = () => {
     }
     setFilteredLugares(results);
 
-    // B. Resetear Sliders cuando cambia el filtro
-    setCurrentSlide(0); // Directorio
-    setCurrentPoiIndex(0); // POIs
-    setCurrentPromoSlide(0); // Promociones
+    setCurrentSlide(0);
+    setCurrentPoiIndex(0);
+    setCurrentPromoSlide(0);
   }, [filters, lugares]);
 
   const toggleCategory = (catId) => {
@@ -140,7 +126,6 @@ const Explorar = () => {
     });
   };
 
-  // === 6. LÓGICA DE SCROLL ===
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + window.innerHeight / 2;
@@ -195,9 +180,6 @@ const Explorar = () => {
     return chunked;
   };
 
-  // --- LÓGICA DE SLIDERS FILTRADOS ---
-
-  // 1. POIS FILTRADOS (NUEVO)
   const filteredPois = pois.filter((poi) => {
     if (poi.idLugarNavigation && poi.idLugarNavigation.direccion) {
       return poi.idLugarNavigation.direccion
@@ -220,11 +202,9 @@ const Explorar = () => {
     );
   };
 
-  // Obtenemos el POI actual de la lista FILTRADA
   const currentPoiData =
     filteredPois.length > 0 ? filteredPois[currentPoiIndex] : null;
 
-  // 2. PROMOCIONES FILTRADAS
   const today = new Date();
   const validPromociones = promociones.filter((p) => {
     const endDate = new Date(p.fechaFin);
@@ -248,7 +228,6 @@ const Explorar = () => {
       prev === 0 ? promocionesSlides.length - 1 : prev - 1
     );
 
-  // 3. DIRECTORIO (Ya filtrado en useEffect)
   const lugaresSlides = chunkArray(filteredLugares, 2);
   const nextSlide = () =>
     setCurrentSlide((prev) =>
@@ -454,9 +433,7 @@ const Explorar = () => {
         </Container>
       </section>
 
-      {/* ==========================================
-          SECCIÓN 3: PUNTOS DE INTERÉS (AHORA FILTRADO)
-          ========================================== */}
+      {/* SECCIÓN 3: PUNTOS DE INTERÉS */}
       <section
         ref={section3Ref}
         className="full-screen-section position-relative overflow-hidden text-white"
@@ -522,7 +499,6 @@ const Explorar = () => {
                 </p>
               </div>
 
-              {/* Botones de navegación POI */}
               {filteredPois.length > 1 && (
                 <>
                   <button
@@ -542,7 +518,6 @@ const Explorar = () => {
                 </>
               )}
 
-              {/* Dots de navegación (Mapeamos filteredPois) */}
               {filteredPois.length > 1 && (
                 <div className="poi-dots-container">
                   {filteredPois.map((_, idx) => (
@@ -716,7 +691,6 @@ const Explorar = () => {
         </button>
       </div>
 
-      {/* MODAL */}
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}

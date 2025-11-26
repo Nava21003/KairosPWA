@@ -6,7 +6,6 @@ import {
     GET_SOCIO_BY_ID
 } from "../types";
 
-// Función auxiliar para extraer datos si vienen envueltos en $values (típico de .NET)
 const extractData = (payload) => {
     if (payload && payload.$values) {
         return payload.$values;

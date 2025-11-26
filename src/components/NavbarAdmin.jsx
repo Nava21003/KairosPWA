@@ -1,9 +1,8 @@
 import React, { useContext } from "react";
 import { Nav, Button } from "react-bootstrap";
-import { useNavigate, useLocation } from "react-router-dom"; // Agregamos useLocation
+import { useNavigate, useLocation } from "react-router-dom";
 import AuthContext from "../Context/Auth/AuthContext";
 
-// Iconos
 import {
   Home,
   Layers,
@@ -25,7 +24,7 @@ import {
 
 const NavbarAdmin = ({ sidebarOpen }) => {
   const navigate = useNavigate();
-  const location = useLocation(); // Para detectar la ruta actual manualmente
+  const location = useLocation();
   const { logout } = useContext(AuthContext);
 
   const handleLogout = () => {
@@ -33,11 +32,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
     navigate("/");
   };
 
-  // --- COMPONENTE AUXILIAR PARA LOS ENLACES ---
-  // Esto hace que el código sea más limpio y evita repetir el onClick
   const SidebarLink = ({ to, icon: Icon, label, end = false }) => {
-    // Verificamos si el link está activo
-    // Si 'end' es true, la ruta debe ser exacta. Si no, verifica si empieza con ella.
     const isActive = end
       ? location.pathname === to
       : location.pathname.startsWith(to);
@@ -46,7 +41,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
       <div
         onClick={() => navigate(to)}
         className={`nav-link-kairos ${isActive ? "active" : ""}`}
-        style={{ cursor: "pointer" }} // Importante para la UX
+        style={{ cursor: "pointer" }}
       >
         <Icon className="me-3" size={18} /> {label}
       </div>
@@ -142,7 +137,6 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         <div className="sidebar-header mb-3 p-3">🏛️ Kairos Admin</div>
 
         <Nav className="flex-column px-3">
-          {/* Dashboard (end=true para coincidencia exacta) */}
           <SidebarLink to="/admin" icon={Home} label="Dashboard" end={true} />
 
           <div className="sidebar-divider">Gestión de Contenido</div>
@@ -166,7 +160,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             label="Promociones"
           />
 
-          {/* === SECCIÓN: ADMINISTRACIÓN === */}
+          {/* SECCIÓN: ADMINISTRACIÓN */}
           <div className="sidebar-divider">Administración</div>
 
           <SidebarLink
@@ -181,7 +175,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             label="Roles y Permisos"
           />
 
-          {/* === SECCIÓN: COMUNICACIÓN & DATOS === */}
+          {/* SECCIÓN: COMUNICACIÓN & DATOS */}
           <div className="sidebar-divider">Comunicación & Monitoreo</div>
 
           <SidebarLink to="/admin/mensajes" icon={Mail} label="Mensajes" />
@@ -197,7 +191,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
             label="Actividad Global"
           />
 
-          {/* === SECCIÓN: SISTEMA === */}
+          {/* SECCIÓN: SISTEMA */}
           <div className="sidebar-divider">Sistema</div>
 
           <SidebarLink

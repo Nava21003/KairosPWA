@@ -10,7 +10,6 @@ import {
 } from "../types";
 import SociosAfiliadosReduce from "./SociosAfiliadosReduce";
 
-// URL base de tu API para SociosAfiliados
 const API_SOCIOS_URL = "http://localhost:5219/api/SociosAfiliados";
 
 const SociosAfiliadosState = ({ children }) => {
@@ -81,8 +80,6 @@ const SociosAfiliadosState = ({ children }) => {
         type: CREATE_SOCIO,
         payload: response.data,
       });
-      // Opcional: Recargar la lista después de crear
-      // await getSocios();
       return response.data;
     } catch (error) {
       console.error(
@@ -100,16 +97,11 @@ const SociosAfiliadosState = ({ children }) => {
    */
   const updateSocio = async (id, socioData) => {
     try {
-      // Aseguramos que el ID vaya en el cuerpo también si el backend lo requiere
       const dataToSend = { ...socioData, idSocio: id };
-
-      // Nota: Usualmente PUT no devuelve el objeto, pero si tu API lo hace, úsalo.
-      // Si tu API devuelve NoContent (204), quizás debas usar dataToSend para el dispatch.
       const res = await axios.put(`${API_SOCIOS_URL}/${id}`, dataToSend);
 
       dispatch({
         type: UPDATE_SOCIO,
-        // Si res.data está vacío (204 No Content), usamos los datos enviados para actualizar el estado local
         payload: res.data || dataToSend,
       });
       return res.data;
@@ -136,9 +128,7 @@ const SociosAfiliadosState = ({ children }) => {
       return true;
     } catch (error) {
       const errorMessage = error.response?.data?.errors || error.message;
-      // Manejo específico si hay conflicto de claves foráneas (ej. tiene promociones asociadas)
       if (error.response && error.response.status === 409) {
-        // Conflict
         console.error(
           "ERROR: No se puede eliminar el socio porque tiene promociones o registros asociados."
         );
@@ -146,7 +136,6 @@ const SociosAfiliadosState = ({ children }) => {
           "No se puede eliminar el socio porque tiene registros asociados."
         );
       } else if (error.response && error.response.status === 500) {
-        // A veces SQL Server lanza error 500 por FK constraints dependiendo de la config
         console.error(
           "ERROR DE SERVIDOR (Posible FK Constraint):",
           errorMessage

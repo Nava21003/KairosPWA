@@ -26,11 +26,9 @@ import {
   User,
 } from "lucide-react";
 
-// Importamos el Contexto y State generados
 import MensajesContext from "../../Context/Mensajes/MensajesContext";
 import MensajesState from "../../Context/Mensajes/MensajesState";
 
-// --- TEMA VISUAL ---
 const kairosTheme = {
   primary: "#1e4d2b",
   secondary: "#6c757d",
@@ -53,7 +51,6 @@ const AdminMensajesContent = () => {
 
   useEffect(() => {
     handleRefresh();
-    // eslint-disable-next-line
   }, []);
 
   const handleRefresh = async () => {

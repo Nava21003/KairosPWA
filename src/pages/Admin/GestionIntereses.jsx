@@ -30,23 +30,17 @@ import {
   Save,
   Search,
   RefreshCw,
-  Heart, // Icono para Interés
-  AlignLeft, // Icono Descripción
-  FileText, // Icono Stats
-  Hash, // Icono ID
+  Heart,
+  AlignLeft,
+  FileText,
+  Hash,
 } from "lucide-react";
 
-// --- 1. CONTEXTO Y REDUCER ---
-
 const InteresesContext = createContext();
-
-// Tipos de Acciones
 const GET_INTERESES = "GET_INTERESES";
 const CREATE_INTERES = "CREATE_INTERES";
 const UPDATE_INTERES = "UPDATE_INTERES";
 const DELETE_INTERES = "DELETE_INTERES";
-
-// Helper para extraer datos de respuestas OData o estándar
 const extractData = (payload) => {
   if (payload && payload.$values) {
     return payload.$values;
@@ -66,10 +60,10 @@ const InteresesReducer = (state, action) => {
       };
     }
     case CREATE_INTERES: {
-      return state; // Recargaremos la lista tras crear
+      return state;
     }
     case UPDATE_INTERES: {
-      return state; // Recargaremos la lista tras editar
+      return state;
     }
     case DELETE_INTERES: {
       const idToDelete = payload;
@@ -82,8 +76,6 @@ const InteresesReducer = (state, action) => {
       return state;
   }
 };
-
-// --- 2. STATE (Lógica de Negocio) ---
 
 const API_INTERESES_URL = "http://localhost:5219/api/Intereses";
 
@@ -152,8 +144,6 @@ const InteresesState = ({ children }) => {
     </InteresesContext.Provider>
   );
 };
-
-// --- 3. COMPONENTES UI ---
 
 const kairosTheme = {
   primary: "#4ecca3",
@@ -422,7 +412,7 @@ const GestionInteresesContent = () => {
         showMessage("Interés creado exitosamente", "success");
       }
       handleCloseModal();
-      await getIntereses(); // Recargar lista
+      await getIntereses();
     } catch (error) {
       showMessage(`Error: ${error.message}`, "danger");
     } finally {
@@ -446,8 +436,6 @@ const GestionInteresesContent = () => {
   };
 
   const currentIntereses = Array.isArray(intereses) ? intereses : [];
-
-  // Filtro de búsqueda
   const filteredIntereses = currentIntereses.filter((i) => {
     const nombre = (i.nombre || "").toLowerCase();
     const descripcion = (i.descripcion || "").toLowerCase();
@@ -456,8 +444,6 @@ const GestionInteresesContent = () => {
   });
 
   const isLoading = loading.data && !dataLoaded;
-
-  // Calculos para stats simples
   const total = currentIntereses.length;
   const conDescripcion = currentIntereses.filter(
     (i) => i.descripcion && i.descripcion.length > 0
@@ -493,7 +479,6 @@ const GestionInteresesContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -576,7 +561,6 @@ const GestionInteresesContent = () => {
           </Alert>
         )}
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -657,7 +641,6 @@ const GestionInteresesContent = () => {
           </Col>
         </Row>
 
-        {/* Filters */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px" }}
@@ -681,7 +664,6 @@ const GestionInteresesContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Confirm Delete */}
         {confirmingId && (
           <Card
             className="shadow-lg mb-4 border-0"
@@ -725,7 +707,6 @@ const GestionInteresesContent = () => {
           </Card>
         )}
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}

@@ -20,33 +20,30 @@ import {
   Cell,
 } from "recharts";
 
-// ASEGÚRATE QUE ESTAS RUTAS SON CORRECTAS
 import PromocionesContext from "../../Context/Promociones/PromocionesContext";
 import LugaresContext from "../../Context/Lugares/LugaresContext";
 import UserContext from "../../Context/User/UserContext";
 import ActividadesContext from "../../Context/Actividades/ActividadesContext";
 import AuthContext from "../../Context/Auth/AuthContext";
 
-// 🎨 TEMA KAIROS (Light Mode con Neumorfismo sutil)
 const kairosLightTheme = {
-  bgBody: "#F0F2F5", // Fondo general, blanco muy suave
-  bgCard: "#FFFFFF", // Fondo de las tarjetas, blanco puro
-  textPrimary: "#212529", // Texto principal, gris oscuro
-  textSecondary: "#6C757D", // Texto secundario, gris medio
-  accentColor: "#10B981", // Verde esmeralda (tu color de acento)
-  accentGlow: "rgba(16, 185, 129, 0.2)", // Sombra/brillo suave del acento
-  borderColor: "#E0E0E0", // Bordes sutiles
-  cardShadow: "0 8px 30px rgba(0, 0, 0, 0.08)", // Sombra para profundidad
+  bgBody: "#F0F2F5",
+  bgCard: "#FFFFFF",
+  textPrimary: "#212529",
+  textSecondary: "#6C757D",
+  accentColor: "#10B981",
+  accentGlow: "rgba(16, 185, 129, 0.2)",
+  borderColor: "#E0E0E0",
+  cardShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
 };
 
-// 🔥 Card de métricas (Neumorfismo sutil)
 const MetricCard = ({ iconClass, value, label, isLoading }) => (
   <Card
     className="h-100 border-0 metric-card-light"
     style={{
       backgroundColor: kairosLightTheme.bgCard,
       boxShadow: kairosLightTheme.cardShadow,
-      borderRadius: "16px", // Bordes redondeados
+      borderRadius: "16px",
     }}
   >
     <Card.Body className="text-center p-4">
@@ -106,7 +103,6 @@ const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // 🔄 CARGA DE DATOS
   useEffect(() => {
     if (!getPromociones || !getLugares || !getUsers) {
       console.error(
@@ -128,9 +124,8 @@ const Dashboard = () => {
     };
 
     loadAllData();
-  }, []); // ⚠️ Evita render infinito
+  }, []);
 
-  // 📊 MÉTRICAS
   const dashboardData = useMemo(() => {
     const safeLugares = lugares ?? [];
     const safePromociones = promociones ?? [];
@@ -308,7 +303,7 @@ const Dashboard = () => {
             <Button
               variant="outline-secondary"
               onClick={toggleSidebar}
-              className="border-0 d-lg-none" // Solo visible en dispositivos pequeños
+              className="border-0 d-lg-none"
             >
               <i className="bi bi-list fs-4" />
             </Button>
@@ -339,7 +334,6 @@ const Dashboard = () => {
 
         {!loading && (
           <>
-            {/* MÉTRICAS */}
             <Row className="mb-5 g-4">
               <Col sm={6} lg={3}>
                 <MetricCard
@@ -375,9 +369,7 @@ const Dashboard = () => {
               </Col>
             </Row>
 
-            {/* SECCIONES DE LISTAS */}
             <Row className="g-4 mb-5">
-              {/* Actividad Reciente */}
               <Col lg={4}>
                 <Card className="h-100 card-general">
                   <Card.Header className="card-header-general">
@@ -395,7 +387,6 @@ const Dashboard = () => {
                 </Card>
               </Col>
 
-              {/* Promociones Destacadas */}
               <Col lg={4}>
                 <Card className="h-100 card-general">
                   <Card.Header className="card-header-general">
@@ -418,7 +409,6 @@ const Dashboard = () => {
                 </Card>
               </Col>
 
-              {/* POIs Más Visitados */}
               <Col lg={4}>
                 <Card className="h-100 card-general">
                   <Card.Header className="card-header-general">
@@ -442,7 +432,6 @@ const Dashboard = () => {
               </Col>
             </Row>
 
-            {/* GRÁFICA */}
             <Row className="mb-5">
               <Col>
                 <Card className="card-general p-4">

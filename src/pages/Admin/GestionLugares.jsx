@@ -39,27 +39,19 @@ import {
   Map,
   Globe,
   AlignLeft,
-  Image as ImageIcon, // Nuevo Icono para imagen
+  Image as ImageIcon,
 } from "lucide-react";
 
-// --- CONFIGURACIÓN API ---
-const API_BASE_URL = "http://localhost:5219"; // Base para imágenes
+const API_BASE_URL = "http://localhost:5219";
 const API_LUGARES_URL = `${API_BASE_URL}/api/Lugares`;
 const API_CATEGORIAS_URL = `${API_BASE_URL}/api/Categorias`;
-
-// Helper para construir la URL de la imagen
 const getImageUrl = (path) => {
   if (!path) return "https://via.placeholder.com/150?text=Sin+Foto";
-  // Si ya es una URL absoluta (https://...), la dejamos tal cual
   if (path.startsWith("http")) return path;
-  // Si es relativa, le pegamos el dominio del backend
   return `${API_BASE_URL}/${path}`;
 };
 
-// --- 1. CONTEXTO Y REDUCER ---
-
 const LugaresContext = createContext();
-
 const GET_LUGARES = "GET_LUGARES";
 const GET_CATEGORIAS = "GET_CATEGORIAS";
 const CREATE_LUGAR = "CREATE_LUGAR";
@@ -185,8 +177,6 @@ const LugaresState = ({ children }) => {
   );
 };
 
-// --- 3. COMPONENTES UI ---
-
 const kairosTheme = {
   primary: "#4ecca3",
   secondary: "#6c757d",
@@ -258,7 +248,7 @@ const LugarModal = ({
     longitud: "",
     direccion: "",
     horario: "",
-    imagen: "", // CAMPO IMAGEN
+    imagen: "",
     esPatrocinado: false,
     estatus: true,
   };
@@ -277,7 +267,7 @@ const LugarModal = ({
         longitud: lugar.longitud || "",
         direccion: lugar.direccion || "",
         horario: lugar.horario || "",
-        imagen: lugar.imagen || "", // CARGAR IMAGEN
+        imagen: lugar.imagen || "",
         esPatrocinado: lugar.esPatrocinado ?? false,
         estatus: lugar.estatus ?? true,
       });
@@ -347,7 +337,6 @@ const LugarModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
-          {/* PRIMERA FILA: Nombre y Categoría */}
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
               <Form.Label className="fw-semibold">
@@ -390,7 +379,6 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
-          {/* SEGUNDA FILA: Dirección y Horario */}
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
               <Form.Label className="fw-semibold">
@@ -422,7 +410,6 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
-          {/* TERCERA FILA: Latitud y Longitud */}
           <Row className="mb-3">
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">Latitud</Form.Label>
@@ -448,7 +435,6 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
-          {/* CUARTA FILA: Imagen (URL) */}
           <Row className="mb-3">
             <Form.Group as={Col} md={9}>
               <Form.Label className="fw-semibold">
@@ -470,7 +456,6 @@ const LugarModal = ({
               md={3}
               className="d-flex align-items-center justify-content-center"
             >
-              {/* PREVISUALIZACIÓN IMAGEN */}
               <div
                 style={{
                   width: "80px",
@@ -499,7 +484,6 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
-          {/* QUINTA FILA: Descripción */}
           <Form.Group className="mb-3">
             <Form.Label className="fw-semibold">
               <Info size={16} className="me-1" /> Descripción
@@ -514,7 +498,6 @@ const LugarModal = ({
             />
           </Form.Group>
 
-          {/* SEXTA FILA: Switches */}
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
@@ -782,7 +765,6 @@ const GestionLugaresContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -864,7 +846,6 @@ const GestionLugaresContent = () => {
           </Alert>
         )}
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -952,7 +933,6 @@ const GestionLugaresContent = () => {
           </Col>
         </Row>
 
-        {/* Filters */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px" }}
@@ -1030,7 +1010,6 @@ const GestionLugaresContent = () => {
           </Card>
         )}
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}
@@ -1078,7 +1057,6 @@ const GestionLugaresContent = () => {
                         #{l.idLugar}
                       </Badge>
                     </td>
-                    {/* COLUMNA FOTO */}
                     <td className="p-3 text-center">
                       <div
                         style={{

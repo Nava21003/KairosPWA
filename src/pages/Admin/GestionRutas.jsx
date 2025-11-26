@@ -43,13 +43,10 @@ import {
   Globe,
 } from "lucide-react";
 
-// --- 1. CONTEXTO Y REDUCER ---
-
 const RutasContext = createContext();
 
-// Tipos de Acciones
 const GET_RUTAS = "GET_RUTAS";
-const GET_LUGARES_PARA_RUTAS = "GET_LUGARES_PARA_RUTAS"; // Nuevo
+const GET_LUGARES_PARA_RUTAS = "GET_LUGARES_PARA_RUTAS";
 const CREATE_RUTA = "CREATE_RUTA";
 const UPDATE_RUTA = "UPDATE_RUTA";
 const DELETE_RUTA = "DELETE_RUTA";
@@ -73,7 +70,6 @@ const RutasReducer = (state, action) => {
       };
     }
     case GET_LUGARES_PARA_RUTAS: {
-      // Nuevo
       const data = extractData(payload);
       return {
         ...state,
@@ -95,15 +91,13 @@ const RutasReducer = (state, action) => {
   }
 };
 
-// --- 2. STATE ---
-
 const API_RUTAS_URL = "http://localhost:5219/api/Rutas";
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares"; // Necesario para los dropdowns
+const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
 
 const RutasState = ({ children }) => {
   const initialState = {
     rutas: [],
-    lugaresDisponibles: [], // Para llenar los select del modal
+    lugaresDisponibles: [],
   };
 
   const [state, dispatch] = useReducer(RutasReducer, initialState);
@@ -118,7 +112,6 @@ const RutasState = ({ children }) => {
     }
   };
 
-  // Nueva función para traer lugares y usarlos en el formulario de rutas
   const getLugares = async () => {
     try {
       const res = await axios.get(API_LUGARES_URL);
@@ -178,8 +171,6 @@ const RutasState = ({ children }) => {
   );
 };
 
-// --- 3. COMPONENTES UI ---
-
 const kairosTheme = {
   primary: "#4ecca3",
   secondary: "#6c757d",
@@ -236,8 +227,7 @@ const MessageBox = ({ message }) => {
 const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
   const isEditing = ruta !== null;
 
-  // Estado para controlar si usamos Coordenadas o Lugares
-  const [modoDefinicion, setModoDefinicion] = useState("lugares"); // 'lugares' | 'coordenadas'
+  const [modoDefinicion, setModoDefinicion] = useState("lugares");
 
   const initialFormData = {
     nombre: "",
@@ -245,7 +235,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
     idUsuario: "",
     estatus: "Activa",
     fechaCreacion: new Date().toISOString(),
-    // Campos nuevos
     latitudInicio: "",
     longitudInicio: "",
     latitudFin: "",
@@ -259,7 +248,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
 
   useEffect(() => {
     if (ruta && show) {
-      // Detectar modo basado en los datos
       let modoInicial = "lugares";
       if (
         !ruta.idLugarInicio &&
@@ -295,7 +283,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
     const errors = {};
     if (!formData.nombre.trim()) errors.nombre = "El nombre es requerido";
 
-    // Validacion condicional segun el modo
     if (modoDefinicion === "coordenadas") {
       if (!formData.latitudInicio || !formData.longitudInicio) {
         errors.coordenadasInicio = "Latitud y Longitud de inicio requeridas";
@@ -304,7 +291,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
         errors.coordenadasFin = "Latitud y Longitud de fin requeridas";
       }
     } else {
-      // Modo lugares
       if (!formData.idLugarInicio)
         errors.idLugarInicio = "Selecciona lugar de inicio";
       if (!formData.idLugarFin) errors.idLugarFin = "Selecciona lugar de fin";
@@ -318,7 +304,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
     const { name, value, type, checked } = e.target;
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
 
-    // Limpiar errores específicos de modo al escribir
     if (name.includes("latitud") || name.includes("longitud")) {
       setFormErrors((prev) => ({
         ...prev,
@@ -349,12 +334,10 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Preparar objeto. Limpiar campos que no correspondan al modo seleccionado
     const dataToSend = {
       ...formData,
       idUsuario: formData.idUsuario ? parseInt(formData.idUsuario) : null,
 
-      // Si modo es lugares, enviamos null en coordenadas y viceversa
       latitudInicio:
         modoDefinicion === "coordenadas"
           ? parseFloat(formData.latitudInicio)
@@ -409,7 +392,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
-          {/* --- DATOS GENERALES --- */}
           <h6 className="text-muted fw-bold mb-3">Datos Generales</h6>
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
@@ -455,7 +437,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
             />
           </Form.Group>
 
-          {/* --- DEFINICIÓN DE TRAYECTO (TABS) --- */}
           <hr className="my-4" />
           <h6 className="text-muted fw-bold mb-3">Definición de Trayecto</h6>
 
@@ -603,7 +584,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
             )}
           </div>
 
-          {/* --- ESTATUS --- */}
           <Row className="mt-4">
             <Col md={6}>
               <Form.Group>
@@ -812,7 +792,6 @@ const GestionRutasContent = () => {
       r.estatus === "Activa" || r.estatus === "Abierto" || r.estatus === true
   ).length;
 
-  // Helper para mostrar origen/destino en tabla
   const renderUbicacion = (idLugar, lat, lon, navProp) => {
     if (idLugar && navProp) {
       return (
@@ -863,7 +842,6 @@ const GestionRutasContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -939,7 +917,6 @@ const GestionRutasContent = () => {
           </Alert>
         )}
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -993,7 +970,6 @@ const GestionRutasContent = () => {
           </Col>
         </Row>
 
-        {/* Filters */}
         <Card
           className="border-0 shadow-sm mb-4"
           style={{ borderRadius: "12px" }}
@@ -1027,7 +1003,6 @@ const GestionRutasContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}
@@ -1067,7 +1042,6 @@ const GestionRutasContent = () => {
                           {r.descripcion}
                         </small>
                       </td>
-                      {/* ORIGEN */}
                       <td className="p-3">
                         {renderUbicacion(
                           r.idLugarInicio,
@@ -1076,7 +1050,6 @@ const GestionRutasContent = () => {
                           r.idLugarInicioNavigation
                         )}
                       </td>
-                      {/* DESTINO */}
                       <td className="p-3">
                         {renderUbicacion(
                           r.idLugarFin,
@@ -1163,7 +1136,6 @@ const GestionRutasContent = () => {
         </Card>
       </Container>
 
-      {/* Confirm Delete Overlay */}
       {confirmingId && (
         <div
           style={{

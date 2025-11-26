@@ -13,14 +13,12 @@ import { NavLink } from "react-router-dom";
 import FaqContext from "../../Context/Faq/FaqContext";
 
 const Faq = () => {
-  // 1. Consumimos el contexto
   const { faqs, getFaqs } = useContext(FaqContext);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeKey, setActiveKey] = useState("0");
   const [loading, setLoading] = useState(true);
 
-  // 2. Cargar preguntas al montar el componente
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -28,10 +26,8 @@ const Faq = () => {
       setLoading(false);
     };
     loadData();
-    // eslint-disable-next-line
   }, []);
 
-  // 3. Helper para iconos
   const getIconByCategory = (category) => {
     if (!category) return "bi-question-circle";
     const cat = category.toLowerCase();
@@ -49,15 +45,9 @@ const Faq = () => {
     return "bi-question-circle";
   };
 
-  // 4. Filtrar datos (CORREGIDO EL ERROR)
   const filteredFaqs = faqs.filter((item) => {
-    // Convertimos a String explícitamente para evitar crash si es number o boolean
     const rawStatus = item.estatus ? String(item.estatus) : "";
     const status = rawStatus.toLowerCase();
-
-    // Ajusta esto según cómo guarde tu BD el estatus:
-    // Si guarda "Visible", esto funciona.
-    // Si guarda 1, agregamos la comparación || status === "1"
     const isVisible =
       status === "visible" || status === "1" || status === "true";
 
@@ -74,7 +64,6 @@ const Faq = () => {
   return (
     <>
       <section className="faq-section">
-        {/* === HEADER === */}
         <Container className="pt-5 pb-5 position-relative">
           <div className="bg-blob"></div>
 
@@ -93,7 +82,6 @@ const Faq = () => {
                 digital.
               </p>
 
-              {/* Buscador */}
               <div className="search-box-wrapper mx-auto shadow-lg">
                 <InputGroup className="search-input-group">
                   <InputGroup.Text className="bg-white border-0 ps-4 text-primary">
@@ -120,7 +108,6 @@ const Faq = () => {
           </Row>
         </Container>
 
-        {/* === LISTA DE TARJETAS === */}
         <Container className="pb-5 position-relative z-2">
           <Row className="justify-content-center">
             <Col lg={8}>
@@ -136,7 +123,6 @@ const Faq = () => {
                   onSelect={(e) => setActiveKey(e)}
                 >
                   {filteredFaqs.map((item, index) => {
-                    // Usamos idPregunta como key si existe, sino index
                     const key = item.idPregunta || index;
                     const isActive = activeKey === index.toString();
                     const iconClass = getIconByCategory(item.categoria);

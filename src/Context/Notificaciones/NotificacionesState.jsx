@@ -17,10 +17,6 @@ const NotificacionesState = ({ children }) => {
 
   const [state, dispatch] = useReducer(NotificacionesReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para NotificacionesController
-  // ----------------------------------
-
   /**
    * Obtiene notificaciones por ID de usuario (GET /api/Notificaciones/{idUsuario})
    */

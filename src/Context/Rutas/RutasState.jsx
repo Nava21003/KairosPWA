@@ -13,10 +13,6 @@ const RutasState = ({ children }) => {
 
   const [state, dispatch] = useReducer(RutasReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para RutasController
-  // ----------------------------------
-
   /**
    * Obtiene todas las rutas (GET /api/Rutas)
    */

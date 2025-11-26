@@ -7,7 +7,6 @@ import { LOGIN_SUCCESS, REGISTER_SUCCESS, LOGOUT } from "../types";
 const API_AUTH_URL = "http://localhost:5219/api/Auth";
 
 const AuthState = ({ children }) => {
-  // Try to load persisted auth from localStorage or sessionStorage
   const loadPersisted = () => {
     try {
       const raw =
@@ -38,10 +37,7 @@ const AuthState = ({ children }) => {
     try {
       const res = await axios.post(`${API_AUTH_URL}/login`, credenciales);
       dispatch({ type: LOGIN_SUCCESS, payload: res.data });
-
-      // By default persist in localStorage; if caller passed remember=false store in sessionStorage
-      // The API caller can include a `remember` boolean in the credentials object or pass separately.
-      const remember = credenciales?.remember !== false; // default true
+      const remember = credenciales?.remember !== false;
       try {
         const serialized = JSON.stringify(res.data);
         if (remember) {

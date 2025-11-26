@@ -8,8 +8,6 @@ import RequireAdmin from "../../components/RequireAdmin";
 import Home from "../Home/Home";
 import NotFoundAdmin from "../Error/NotFoundAdmind";
 import Registro from "../Login/Registro";
-
-// Importaciones de Gestión (Admin)
 import Usuarios from "../Admin/GestionUsuarios";
 import Roles from "../Admin/GestionRoles";
 import GestionCategorias from "../Admin/GestionCategorias";
@@ -74,7 +72,6 @@ export const router = createBrowserRouter([
         index: true,
         element: <Dashboard />,
       },
-      // --- GESTIÓN DE CONTENIDO ---
       {
         path: "categorias",
         element: <GestionCategorias />,
@@ -100,7 +97,6 @@ export const router = createBrowserRouter([
         element: <GestionPromociones />,
       },
 
-      // --- ADMINISTRACIÓN ---
       {
         path: "socios",
         element: <GestionSocios />,

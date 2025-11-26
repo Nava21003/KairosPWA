@@ -34,10 +34,8 @@ import {
   Building,
   RefreshCw,
   Power,
-  Image as ImageIcon, // Icono para imagen
+  Image as ImageIcon,
 } from "lucide-react";
-
-// --- 1. CONTEXTO Y REDUCER ---
 
 const PromocionesContext = createContext();
 
@@ -88,8 +86,6 @@ const PromocionesReducer = (state, action) => {
       return state;
   }
 };
-
-// --- 2. STATE ---
 
 const API_PROMOCIONES = "http://localhost:5219/api/Promociones";
 const API_LUGARES = "http://localhost:5219/api/Lugares";
@@ -177,8 +173,6 @@ const PromocionesState = ({ children }) => {
   );
 };
 
-// --- 3. UI ---
-
 const kairosTheme = {
   primary: "#4ecca3",
   secondary: "#6c757d",
@@ -237,7 +231,7 @@ const PromocionModal = ({
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
-    imagen: "", // Nuevo campo en estado
+    imagen: "",
     idLugar: "",
     idSocio: "",
     fechaInicio: "",
@@ -252,7 +246,7 @@ const PromocionModal = ({
         idPromocion: promocion.idPromocion,
         titulo: promocion.titulo || "",
         descripcion: promocion.descripcion || "",
-        imagen: promocion.imagen || "", // Cargar imagen al editar
+        imagen: promocion.imagen || "",
         idLugar: promocion.idLugar || "",
         idSocio: promocion.idSocio || "",
         fechaInicio: promocion.fechaInicio
@@ -265,7 +259,7 @@ const PromocionModal = ({
       setFormData({
         titulo: "",
         descripcion: "",
-        imagen: "", // Resetear imagen
+        imagen: "",
         idLugar: "",
         idSocio: "",
         fechaInicio: "",
@@ -338,7 +332,6 @@ const PromocionModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
-          {/* Fila Titulo e Imagen */}
           <Row className="mb-3">
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
@@ -566,7 +559,7 @@ const GestionPromocionesContent = () => {
         idSocio: promocion.idSocio,
         titulo: promocion.titulo,
         descripcion: promocion.descripcion,
-        imagen: promocion.imagen, // No olvidar incluir la imagen al cambiar estatus
+        imagen: promocion.imagen,
         fechaInicio: promocion.fechaInicio,
         fechaFin: promocion.fechaFin,
         estatus: !promocion.estatus,
@@ -720,7 +713,6 @@ const GestionPromocionesContent = () => {
         </div>
 
         <Row className="mb-4 g-3">
-          {/* Tarjetas de Resumen (Sin cambios) */}
           <Col md={4}>
             <Card
               className="border-0 shadow-sm"

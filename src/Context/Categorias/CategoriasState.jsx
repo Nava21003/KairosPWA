@@ -22,7 +22,6 @@ const CategoriasState = ({ children }) => {
   const getCategorias = async () => {
     try {
       const res = await axios.get(API_CATEGORIAS_URL);
-      // El reducer ya tiene la lógica para extraer $values si viene de .NET
       dispatch({ type: GET_CATEGORIAS, payload: res.data });
     } catch (error) {
       console.error("Error al obtener categorías:", error);
@@ -32,23 +31,18 @@ const CategoriasState = ({ children }) => {
   // Crear categoría
   const createCategoria = async (categoriaData) => {
     try {
-      // Aseguramos que estatus sea booleano y descripcion string
       const dataToSend = {
         nombre: categoriaData.nombre,
         descripcion: categoriaData.descripcion || "",
-        estatus: categoriaData.estatus === true, // fuerza booleano
+        estatus: categoriaData.estatus === true,
       };
 
       const res = await axios.post(API_CATEGORIAS_URL, dataToSend);
-
-      // Actualizamos el estado local
       dispatch({ type: CREATE_CATEGORIA, payload: res.data });
-
-      // Opcional: recargar todo para asegurar sincronización
       await getCategorias();
     } catch (error) {
       console.error("Error al crear categoría:", error);
-      throw error; // Lanzar error para que el componente UI lo muestre
+      throw error;
     }
   };
 
@@ -63,9 +57,6 @@ const CategoriasState = ({ children }) => {
       };
 
       await axios.put(`${API_CATEGORIAS_URL}/${id}`, dataToSend);
-
-      // En React state, a veces es más fácil recargar la lista completa
-      // para asegurar que el backend procesó todo bien.
       await getCategorias();
     } catch (error) {
       console.error("Error al actualizar categoría:", error);

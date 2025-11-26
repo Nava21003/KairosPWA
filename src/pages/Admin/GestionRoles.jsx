@@ -321,7 +321,6 @@ const RolesContent = () => {
       );
       await memoizedGetRoles();
     } catch (error) {
-      // Manejar específicamente el error de constraint
       if (
         error.message?.includes("REFERENCE constraint") ||
         error.message?.includes("FK__Usuarios__idRol") ||

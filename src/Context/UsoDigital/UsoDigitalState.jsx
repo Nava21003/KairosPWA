@@ -13,10 +13,6 @@ const UsoDigitalState = ({ children }) => {
 
   const [state, dispatch] = useReducer(UsoDigitalReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para UsoDigitalController
-  // ----------------------------------
-
   /**
    * Obtiene registros de uso digital por ID de usuario (GET /api/UsoDigital/{idUsuario})
    */

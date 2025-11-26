@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useLocation } from "react-router-dom"; // Importamos hooks necesarios
+import { useNavigate, useLocation } from "react-router-dom";
 import Container from "react-bootstrap/Container";
 import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
@@ -7,16 +7,11 @@ import Navbar from "react-bootstrap/Navbar";
 const MiNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Función para manejar la navegación del logo
   const handleBrandClick = () => {
     navigate("/");
   };
 
-  // Componente auxiliar para los enlaces del menú
-  // Esto mantiene tu código limpio y aplica la lógica de ocultar la URL
   const CustomNavItem = ({ to, children, className, end = false }) => {
-    // Lógica para saber si el item está activo
     const isActive = end
       ? location.pathname === to
       : location.pathname.startsWith(to);
@@ -25,7 +20,7 @@ const MiNavbar = () => {
       <div
         onClick={() => navigate(to)}
         className={`nav-link ${className} ${isActive ? "active" : ""}`}
-        style={{ cursor: "pointer" }} // Importante para que parezca un botón
+        style={{ cursor: "pointer" }}
       >
         {children}
       </div>
@@ -42,7 +37,6 @@ const MiNavbar = () => {
         className="shadow-sm navbar-kairos"
       >
         <Container fluid className="px-4">
-          {/* BRAND / LOGO - También convertido a div con onClick */}
           <Navbar.Brand
             onClick={handleBrandClick}
             className="fw-bold d-flex align-items-center navbar-brand-kairos"

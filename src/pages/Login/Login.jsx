@@ -72,7 +72,6 @@ const Login = () => {
 
   return (
     <>
-      {/* Carga de Bootstrap Icons y fuentes */}
       <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -81,8 +80,6 @@ const Login = () => {
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
       />
-
-      {/* Estilos CSS (Incluye cambios para el estado de loading) */}
       <style>{`
         * {
           margin: 0;
@@ -684,7 +681,6 @@ const Login = () => {
 
       <div className="login-page-container">
         <Row className="full-height-row">
-          {/* Columna Izquierda - Branding */}
           <Col lg={7} className="d-none d-lg-block p-0">
             <div className="login-visual-section">
               <div className="visual-decoration decoration-1"></div>
@@ -736,7 +732,6 @@ const Login = () => {
             </div>
           </Col>
 
-          {/* Columna Derecha - Formulario */}
           <Col lg={5} className="p-0">
             <div className="login-form-wrapper">
               <Card className="login-card-advanced">
@@ -798,8 +793,6 @@ const Login = () => {
                       </button>
                     </div>
                   </Form.Group>
-
-                  {/* Se movió el error y el botón para manejar la lógica de loading */}
 
                   <div className="remember-me-wrapper">
                     <input type="checkbox" id="rememberMe" />

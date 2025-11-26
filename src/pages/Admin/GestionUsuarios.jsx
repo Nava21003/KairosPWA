@@ -36,7 +36,7 @@ import {
   Search,
   Filter,
   Calendar,
-  Camera, // Agregado para el botón de subir foto
+  Camera,
 } from "lucide-react";
 
 import UserContext from "../../Context/User/UserContext";
@@ -108,7 +108,7 @@ const UsuarioModal = ({
   loading,
 }) => {
   const isEditing = usuario !== null;
-  const fileInputRef = useRef(null); // Referencia para el input de archivo
+  const fileInputRef = useRef(null);
 
   const initialFormData = {
     idRol: 2,
@@ -117,7 +117,7 @@ const UsuarioModal = ({
     correo: "",
     contrasena: "",
     estatus: true,
-    fotoPerfil: "", // Nuevo campo agregado
+    fotoPerfil: "",
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -133,10 +133,9 @@ const UsuarioModal = ({
         idRol: usuario.idRol ? parseInt(usuario.idRol) : 2,
         contrasena: "",
         estatus: usuario.estatus ?? true,
-        fotoPerfil: usuario.fotoPerfil || "", // Cargar foto existente si la hay
+        fotoPerfil: usuario.fotoPerfil || "",
       });
     } else if (!show) {
-      // Resetear form cuando el modal se cierra
       setFormData(initialFormData);
       setFormErrors({});
     }
@@ -178,11 +177,9 @@ const UsuarioModal = ({
     }));
   };
 
-  // Manejador para la carga de imagen (Convierte a Base64)
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar tamaño (ej. max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         alert("La imagen es demasiado grande. Máximo 2MB.");
         return;
@@ -192,7 +189,7 @@ const UsuarioModal = ({
       reader.onloadend = () => {
         setFormData((prev) => ({
           ...prev,
-          fotoPerfil: reader.result, // Esto guarda el string Base64
+          fotoPerfil: reader.result,
         }));
       };
       reader.readAsDataURL(file);
@@ -250,7 +247,6 @@ const UsuarioModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
-          {/* SECCIÓN DE FOTO DE PERFIL AGREGADA */}
           <div className="d-flex justify-content-center mb-4">
             <div className="position-relative">
               <div
@@ -504,7 +500,7 @@ const UsuariosContent = () => {
   const [filterRole, setFilterRole] = useState("all");
 
   const memoizedGetUsers = useCallback(async () => {
-    if (loading.users) return; // Evitar llamadas simultáneas
+    if (loading.users) return;
 
     setLoading((prev) => ({ ...prev, users: true }));
     try {
@@ -518,7 +514,7 @@ const UsuariosContent = () => {
   }, [getUsers]);
 
   const memoizedGetRoles = useCallback(async () => {
-    if (loading.roles) return; // Evitar llamadas simultáneas
+    if (loading.roles) return;
 
     setLoading((prev) => ({ ...prev, roles: true }));
     try {
@@ -538,7 +534,7 @@ const UsuariosContent = () => {
     };
 
     loadData();
-  }, []); // Solo se ejecuta una vez al montar el componente
+  }, []);
 
   const showMessage = (text, type = "info") => {
     setMessage({ text, type });
@@ -576,7 +572,6 @@ const UsuariosContent = () => {
         showMessage(`Usuario creado exitosamente`, "success");
       }
       handleCloseModal();
-      // Recargar usuarios después de una operación exitosa
       await memoizedGetUsers();
     } catch (error) {
       showMessage(
@@ -595,7 +590,6 @@ const UsuariosContent = () => {
     try {
       await deleteUser(idToDelete);
       showMessage(`Usuario eliminado exitosamente`, "success");
-      // Recargar usuarios después de eliminar
       await memoizedGetUsers();
     } catch (error) {
       showMessage(
@@ -620,7 +614,6 @@ const UsuariosContent = () => {
         `Estatus cambiado a ${newStatus ? "Activo" : "Inactivo"}`,
         "success"
       );
-      // Recargar usuarios después de cambiar estatus
       await memoizedGetUsers();
     } catch (error) {
       showMessage(
@@ -640,7 +633,6 @@ const UsuariosContent = () => {
       const date = new Date(dateTimeString);
 
       if (isNaN(date.getTime())) {
-        // Intentar con formato alternativo si el primero falla
         const altDate = new Date(dateTimeString.replace(" ", "T"));
         if (isNaN(altDate.getTime())) return "Fecha Inválida";
 
@@ -826,7 +818,6 @@ const UsuariosContent = () => {
           </Row>
         </div>
 
-        {/* Mostrar estado de carga */}
         {isLoading && (
           <Alert variant="info" className="mb-3">
             <Spinner animation="border" size="sm" className="me-2" />
@@ -1194,7 +1185,6 @@ const UsuariosContent = () => {
                             #{u.idUsuario}
                           </Badge>
                         </td>
-                        {/* CELDA DE USUARIO MODIFICADA PARA INCLUIR FOTO */}
                         <td style={{ padding: "1rem" }}>
                           <div className="d-flex align-items-center">
                             {u.fotoPerfil ? (

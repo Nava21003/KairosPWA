@@ -11,10 +11,7 @@ import {
 import MensajesContext from "../../Context/Mensajes/MensajesContext";
 
 const Contactanos = () => {
-  // 1. Consumimos el contexto
   const { createMensaje } = useContext(MensajesContext);
-
-  // 2. Estado del formulario
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
@@ -22,7 +19,6 @@ const Contactanos = () => {
     mensaje: "",
   });
 
-  // 3. Estado para manejar la UI (Carga, Éxito, Error)
   const [uiState, setUiState] = useState({
     loading: false,
     success: false,
@@ -32,7 +28,6 @@ const Contactanos = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Limpiamos alertas al escribir
     if (uiState.success || uiState.error) {
       setUiState({ ...uiState, success: false, error: false });
     }
@@ -41,7 +36,6 @@ const Contactanos = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validación básica
     if (!formData.nombre || !formData.email || !formData.mensaje) {
       setUiState({
         ...uiState,
@@ -59,7 +53,6 @@ const Contactanos = () => {
     });
 
     try {
-      // Mapeamos 'email' del form a 'correo' del backend
       const datosParaEnviar = {
         nombre: formData.nombre,
         correo: formData.email,
@@ -69,14 +62,13 @@ const Contactanos = () => {
 
       await createMensaje(datosParaEnviar);
 
-      // Éxito
       setUiState({
         loading: false,
         success: true,
         error: false,
         errorMessage: "",
       });
-      setFormData({ nombre: "", email: "", asunto: "", mensaje: "" }); // Limpiar form
+      setFormData({ nombre: "", email: "", asunto: "", mensaje: "" });
     } catch (error) {
       console.error("Error al enviar formulario:", error);
 

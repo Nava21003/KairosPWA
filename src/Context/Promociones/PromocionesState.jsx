@@ -36,18 +36,17 @@ const PromocionesState = ({ children }) => {
         payload: res.data,
       });
 
-      return res.data; // IMPORTANTE: Retornar los datos
+      return res.data;
     } catch (error) {
       console.error(
         "Error al obtener promociones:",
         error.response?.data || error.message
       );
-      // Dispatch con array vacío en caso de error
       dispatch({
         type: GET_PROMOCIONES,
         payload: [],
       });
-      throw error; // IMPORTANTE: Lanzar el error para que se capture en el componente
+      throw error;
     }
   };
 

@@ -3,21 +3,17 @@ import { Container, Row, Col, Button, Badge } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 
 const Home = () => {
-  // === REFERENCIAS A LAS 4 SECCIONES ===
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
   const section3Ref = useRef(null);
   const section4Ref = useRef(null);
 
-  // Array ordenado de las secciones
   const sections = [section1Ref, section2Ref, section3Ref, section4Ref];
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // === LÓGICA DE DETECCIÓN DE SCROLL ===
   useEffect(() => {
     const handleScroll = () => {
-      // Detectamos el centro de la pantalla
       const scrollPosition = window.scrollY + window.innerHeight / 2;
 
       let newIndex = 0;
@@ -33,18 +29,16 @@ const Home = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // === FUNCIÓN PARA NAVEGAR ===
   const scrollToSection = (direction) => {
     let nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
 
-    // Límites
     if (nextIndex < 0) nextIndex = 0;
     if (nextIndex >= sections.length) nextIndex = sections.length - 1;
 
     if (sections[nextIndex].current) {
       sections[nextIndex].current.scrollIntoView({
         behavior: "smooth",
-        block: "start", // "start" alinea el top de la sección con el top de la ventana (perfecto para 100vh)
+        block: "start",
       });
       setCurrentIndex(nextIndex);
     }
@@ -52,9 +46,7 @@ const Home = () => {
 
   return (
     <>
-      {/* ==========================================
-          SECCIÓN 1: HERO & INTRO
-          ========================================== */}
+      {/* SECCIÓN 1: HERO & INTRO */}
       <section
         ref={section1Ref}
         className="hero-section full-screen-section text-dark position-relative overflow-hidden"
@@ -208,16 +200,13 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* ================================================================
-          SECCIÓN 2: PROPÓSITO + CARACTERÍSTICAS
-          ================================================================ */}
+      {/* SECCIÓN 2: PROPÓSITO + CARACTERÍSTICAS */}
       <section
         ref={section2Ref}
         className="combined-section full-screen-section d-flex align-items-center position-relative"
       >
         <div className="bg-decor-circle"></div>
         <Container>
-          {/* Cabecera Unificada */}
           <div className="text-center mb-5">
             <span className="section-label">Nuestra Esencia y Tecnología</span>
             <h2 className="display-5 fw-bold text-dark mt-3">
@@ -233,14 +222,12 @@ const Home = () => {
           </div>
 
           <Row className="gy-4 gx-lg-5 justify-content-center">
-            {/* --- COLUMNA IZQUIERDA: EL PROPÓSITO --- */}
             <Col lg={5} className="d-flex flex-column gap-4">
               <h3 className="fw-bold text-dark mb-2 d-flex align-items-center">
                 <i className="bi bi-heart-pulse-fill text-success me-3"></i> El
                 Propósito
               </h3>
 
-              {/* Card 1: Misión */}
               <div className="compact-card mission-card">
                 <div className="compact-icon mission-icon">
                   <i className="bi bi-geo-alt-fill"></i>
@@ -254,7 +241,6 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Card 2: Visión */}
               <div className="compact-card vision-card">
                 <div className="compact-icon vision-icon">
                   <i className="bi bi-eye-fill"></i>
@@ -268,7 +254,6 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Card 3: Valores */}
               <div className="compact-card values-card">
                 <div className="compact-icon values-icon">
                   <i className="bi bi-heart-fill"></i>
@@ -290,7 +275,6 @@ const Home = () => {
               </div>
             </Col>
 
-            {/* --- DIVISOR VISUAL (Solo en Desktop) --- */}
             <Col
               lg={1}
               className="d-none d-lg-flex align-items-center justify-content-center position-relative"
@@ -302,14 +286,12 @@ const Home = () => {
               </div>
             </Col>
 
-            {/* --- COLUMNA DERECHA: LOS PILARES (Features) --- */}
             <Col lg={5} className="d-flex flex-column gap-4">
               <h3 className="fw-bold text-dark mb-2 d-flex align-items-center justify-content-lg-end">
                 Los 3 Pilares{" "}
                 <i className="bi bi-layers-fill text-primary ms-3"></i>
               </h3>
 
-              {/* Feature 1: Rutas */}
               <div className="compact-card feature-style">
                 <div className="compact-content text-lg-end order-2 order-lg-1">
                   <h5 className="fw-bold mb-2">Rutas Inteligentes</h5>
@@ -323,7 +305,6 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Feature 2: Coach */}
               <div className="compact-card feature-style">
                 <div className="compact-content text-lg-end order-2 order-lg-1">
                   <h5 className="fw-bold mb-2">Coach Proactivo</h5>
@@ -337,7 +318,6 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Feature 3: Seguridad */}
               <div className="compact-card feature-style">
                 <div className="compact-content text-lg-end order-2 order-lg-1">
                   <h5 className="fw-bold mb-2">Seguridad Total</h5>
@@ -355,9 +335,7 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* ==========================================
-          SECCIÓN 3: IDEA CENTRAL & ECOSISTEMA
-          ========================================== */}
+      {/* SECCIÓN 3: IDEA CENTRAL & ECOSISTEMA */}
       <section
         ref={section3Ref}
         className="purpose-section full-screen-section bg-white"
@@ -430,7 +408,6 @@ const Home = () => {
             <Col lg={6} className="order-1 order-lg-2">
               <div className="ecosystem-visual">
                 <div className="visual-container">
-                  {/* Mockup Phone Visual */}
                   <div className="phone-mockup-visual">
                     <div className="phone-notch"></div>
                     <div className="phone-screen-visual">
@@ -452,7 +429,6 @@ const Home = () => {
                     <div className="connection-segment"></div>
                   </div>
 
-                  {/* Mockup Web Visual */}
                   <div className="web-mockup">
                     <div className="web-browser-bar">
                       <div className="browser-dots">
@@ -479,9 +455,7 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* ==========================================
-          SECCIÓN: CIERRE IMPACTANTE (CTA)
-          ========================================== */}
+      {/* SECCIÓN: CIERRE IMPACTANTE */}
       <section
         ref={section4Ref}
         className="cta-final-section full-screen-section position-relative overflow-hidden"
@@ -539,9 +513,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* === NAVEGACIÓN LATERAL (Dock) === */}
       <div className="nav-dock">
-        {/* Botón Arriba */}
         <button
           className="nav-btn"
           onClick={() => scrollToSection("up")}
@@ -551,7 +523,6 @@ const Home = () => {
           <i className="bi bi-chevron-up"></i>
         </button>
 
-        {/* Indicador de página (Puntos) */}
         <div className="nav-indicators">
           {sections.map((_, idx) => (
             <div
@@ -567,7 +538,6 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Botón Abajo */}
         <button
           className="nav-btn"
           onClick={() => scrollToSection("down")}
@@ -578,7 +548,6 @@ const Home = () => {
         </button>
       </div>
 
-      {/* ESTILOS CSS COMPLETOS */}
       <style>{`
         /* === NUEVA CLASE MAESTRA: SECCIONES PANTALLA COMPLETA === */
         /* Esta clase obliga a que todas las sections midan al menos el 100% de la ventana

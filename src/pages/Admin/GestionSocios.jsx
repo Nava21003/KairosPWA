@@ -38,17 +38,13 @@ import {
   Users,
 } from "lucide-react";
 
-// --- 1. CONTEXTO Y REDUCER (Integrados) ---
-
 const SociosAfiliadosContext = createContext();
 
-// Tipos de Acciones
 const GET_SOCIOS = "GET_SOCIOS";
 const CREATE_SOCIO = "CREATE_SOCIO";
 const UPDATE_SOCIO = "UPDATE_SOCIO";
 const DELETE_SOCIO = "DELETE_SOCIO";
 
-// Función auxiliar para extraer datos ($values de .NET)
 const extractData = (payload) => {
   if (payload && payload.$values) {
     return payload.$values;
@@ -56,7 +52,6 @@ const extractData = (payload) => {
   return payload;
 };
 
-// Reducer
 const SociosAfiliadosReducer = (state, action) => {
   const { payload, type } = action;
 
@@ -77,8 +72,6 @@ const SociosAfiliadosReducer = (state, action) => {
     }
     case UPDATE_SOCIO: {
       const dataToUse = extractData(payload);
-      // Si payload está vacío (204 NoContent), dataToUse podría ser null/undefined
-      // En ese caso, la actualización optimista o recarga maneja la UI
       if (!dataToUse) return state;
 
       return {
@@ -99,8 +92,6 @@ const SociosAfiliadosReducer = (state, action) => {
       return state;
   }
 };
-
-// --- 2. STATE (Lógica de Negocio Integrada) ---
 
 const API_SOCIOS_URL = "http://localhost:5219/api/SociosAfiliados";
 
@@ -138,7 +129,6 @@ const SociosAfiliadosState = ({ children }) => {
     try {
       const dataToSend = { ...socioData, idSocio: id };
       const res = await axios.put(`${API_SOCIOS_URL}/${id}`, dataToSend);
-      // Si es 204 No Content, usamos los datos enviados para actualizar localmente
       dispatch({
         type: UPDATE_SOCIO,
         payload: res.data || dataToSend,
@@ -174,8 +164,6 @@ const SociosAfiliadosState = ({ children }) => {
     </SociosAfiliadosContext.Provider>
   );
 };
-
-// --- 3. COMPONENTES DE UI ---
 
 const kairosTheme = {
   primary: "#4ecca3",
@@ -490,7 +478,6 @@ const GestionSociosContent = () => {
     }
   };
 
-  // --- CORRECCIÓN CRÍTICA DEL ERROR 400 APLICADA AQUÍ ---
   const handleToggleStatus = async (socio) => {
     if (loading.action) return;
 
@@ -498,7 +485,6 @@ const GestionSociosContent = () => {
     setLoading((prev) => ({ ...prev, action: true }));
 
     try {
-      // Objeto limpio SIN promociones
       const socioLimpio = {
         idSocio: socio.idSocio,
         nombreSocio: socio.nombreSocio,
@@ -605,7 +591,6 @@ const GestionSociosContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -691,7 +676,6 @@ const GestionSociosContent = () => {
           </Alert>
         )}
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -795,7 +779,6 @@ const GestionSociosContent = () => {
           </Col>
         </Row>
 
-        {/* Filters */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px", animation: "fadeIn 0.9s ease-out" }}
@@ -861,7 +844,6 @@ const GestionSociosContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Confirm Delete */}
         {confirmingId && (
           <Card
             className="shadow-lg mb-4 border-0"
@@ -911,7 +893,6 @@ const GestionSociosContent = () => {
           </Card>
         )}
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{
@@ -1151,7 +1132,6 @@ const GestionSociosContent = () => {
   );
 };
 
-// Contenedor Principal (WRAPPER UNIFICADO)
 const GestionSocios = () => {
   return (
     <SociosAfiliadosState>

@@ -14,10 +14,6 @@ const LugaresState = ({ children }) => {
 
   const [state, dispatch] = useReducer(LugaresReduce, initialState);
 
-  // ----------------------------------
-  // Métodos para LugaresController
-  // ----------------------------------
-
   /**
    * Obtiene todos los lugares activos (GET /api/Lugares)
    */
@@ -41,7 +37,6 @@ const LugaresState = ({ children }) => {
   const getLugarById = async (id) => {
     try {
       const res = await axios.get(`${API_LUGARES_URL}/${id}`);
-      // No hay dispatch explícito, se usa para obtener datos
       return res.data;
     } catch (error) {
       console.error(
@@ -58,7 +53,7 @@ const LugaresState = ({ children }) => {
   const createLugar = async (lugarData) => {
     try {
       const response = await axios.post(API_LUGARES_URL, lugarData);
-      await getLugares(); // Recargar la lista
+      await getLugares();
       return response.data;
     } catch (error) {
       console.error(

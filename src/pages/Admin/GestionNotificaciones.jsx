@@ -27,24 +27,20 @@ import {
   XCircle,
   Search,
   RefreshCw,
-  MessageSquare, // Icono para Mensaje
-  Calendar, // Icono Fecha
-  Eye, // Icono Leído
-  EyeOff, // Icono No Leído
-  User, // Icono Usuario
-  Users, // Icono Lista Usuarios
+  MessageSquare,
+  Calendar,
+  Eye,
+  EyeOff,
+  User,
+  Users,
 } from "lucide-react";
-
-// --- 1. CONTEXTO Y REDUCER ---
 
 const NotificacionesContext = createContext();
 
-// Tipos de Acciones
 const GET_NOTIFICACIONES_BY_USER = "GET_NOTIFICACIONES_BY_USER";
 const DELETE_NOTIFICACION = "DELETE_NOTIFICACION";
-const GET_USERS_LIST = "GET_USERS_LIST"; // Nueva acción para cargar usuarios
+const GET_USERS_LIST = "GET_USERS_LIST";
 
-// Helper para extraer datos
 const extractData = (payload) => {
   if (payload && payload.$values) {
     return payload.$values;
@@ -84,20 +80,17 @@ const NotificacionesReducer = (state, action) => {
   }
 };
 
-// --- 2. STATE (Lógica de Negocio) ---
-
 const API_NOTIFICACIONES_URL = "http://localhost:5219/api/Notificaciones";
-const API_USUARIOS_URL = "http://localhost:5219/api/Usuarios"; // URL para obtener usuarios
+const API_USUARIOS_URL = "http://localhost:5219/api/Usuarios";
 
 const NotificacionesState = ({ children }) => {
   const initialState = {
     notificaciones: [],
-    users: [], // Lista de usuarios para el selector
+    users: [],
   };
 
   const [state, dispatch] = useReducer(NotificacionesReducer, initialState);
 
-  // GET /api/Notificaciones/{idUsuario}
   const getNotificacionesByUsuario = async (idUsuario) => {
     try {
       const res = await axios.get(`${API_NOTIFICACIONES_URL}/${idUsuario}`);
@@ -109,7 +102,6 @@ const NotificacionesState = ({ children }) => {
     }
   };
 
-  // DELETE /api/Notificaciones/{id}
   const deleteNotificacion = async (id) => {
     try {
       await axios.delete(`${API_NOTIFICACIONES_URL}/${id}`);
@@ -120,14 +112,12 @@ const NotificacionesState = ({ children }) => {
     }
   };
 
-  // GET /api/Usuarios (Para llenar el select)
   const getUsers = async () => {
     try {
       const res = await axios.get(API_USUARIOS_URL);
       dispatch({ type: GET_USERS_LIST, payload: res.data });
     } catch (error) {
       console.error("Error al obtener lista de usuarios:", error);
-      // No lanzamos error para no bloquear la app, simplemente no habrá lista
     }
   };
 
@@ -145,8 +135,6 @@ const NotificacionesState = ({ children }) => {
     </NotificacionesContext.Provider>
   );
 };
-
-// --- 3. COMPONENTES UI ---
 
 const kairosTheme = {
   primary: "#4ecca3",
@@ -219,10 +207,8 @@ const GestionNotificacionesContent = () => {
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Estado local para el Usuario seleccionado
   const [currentUserId, setCurrentUserId] = useState("");
 
-  // Carga inicial de Usuarios
   useEffect(() => {
     const init = async () => {
       await getUsers();
@@ -230,14 +216,12 @@ const GestionNotificacionesContent = () => {
     init();
   }, []);
 
-  // Efecto para seleccionar el primer usuario si no hay uno seleccionado y la lista cargó
   useEffect(() => {
     if (users.length > 0 && !currentUserId) {
       setCurrentUserId(users[0].idUsuario);
     }
   }, [users, currentUserId]);
 
-  // Carga de notificaciones cuando cambia el usuario seleccionado
   const loadNotificaciones = async (userId) => {
     if (!userId) return;
     if (loading.data) return;
@@ -266,8 +250,8 @@ const GestionNotificacionesContent = () => {
   };
 
   const handleRefresh = () => {
-    getUsers(); // Refrescar lista de usuarios
-    if (currentUserId) loadNotificaciones(currentUserId); // Refrescar notificaciones
+    getUsers();
+    if (currentUserId) loadNotificaciones(currentUserId);
   };
 
   const handleUserChange = (e) => {
@@ -281,7 +265,6 @@ const GestionNotificacionesContent = () => {
     try {
       await deleteNotificacion(idToDelete);
       showMessage("Notificación eliminada", "success");
-      // Recargamos para reflejar cambios
       loadNotificaciones(currentUserId);
     } catch (error) {
       showMessage("Error al eliminar", "danger");
@@ -295,7 +278,6 @@ const GestionNotificacionesContent = () => {
     ? notificaciones
     : [];
 
-  // Filtro de búsqueda
   const filteredData = currentNotificaciones.filter((n) => {
     const titulo = (n.titulo || "").toLowerCase();
     const mensaje = (n.mensaje || "").toLowerCase();
@@ -305,12 +287,10 @@ const GestionNotificacionesContent = () => {
 
   const isLoading = loading.data && !dataLoaded;
 
-  // Cálculos para stats
   const total = currentNotificaciones.length;
   const noLeidas = currentNotificaciones.filter((n) => !n.leido).length;
   const leidas = total - noLeidas;
 
-  // Formato de fecha
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -346,7 +326,6 @@ const GestionNotificacionesContent = () => {
       <MessageBox message={message} />
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.primary} 0%, #3cae8a 100%)`,
@@ -373,7 +352,6 @@ const GestionNotificacionesContent = () => {
             </Col>
             <Col md={5} className="text-md-end mt-3 mt-md-0">
               <div className="d-flex gap-2 justify-content-end align-items-center">
-                {/* Selector de Usuarios */}
                 <div
                   className="d-flex align-items-center bg-white rounded-3 px-3 py-2 shadow-sm"
                   style={{ minWidth: "250px", flex: 1 }}
@@ -453,7 +431,6 @@ const GestionNotificacionesContent = () => {
           </Alert>
         )}
 
-        {/* Stats */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -534,7 +511,6 @@ const GestionNotificacionesContent = () => {
           </Col>
         </Row>
 
-        {/* Filters */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px" }}
@@ -554,7 +530,6 @@ const GestionNotificacionesContent = () => {
           </Card.Body>
         </Card>
 
-        {/* Confirm Delete */}
         {confirmingId && (
           <Card
             className="shadow-lg mb-4 border-0"
@@ -598,7 +573,6 @@ const GestionNotificacionesContent = () => {
           </Card>
         )}
 
-        {/* Table */}
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}

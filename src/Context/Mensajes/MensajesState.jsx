@@ -52,14 +52,12 @@ const MensajesState = ({ children }) => {
   // Actualizar estatus (Admin - marcar como respondido)
   const updateMensaje = async (id, data) => {
     try {
-      // Aseguramos que el ID vaya en el body
       const dataToSend = { ...data, idMensaje: id };
       const res = await axios.put(`${API_MENSAJES_URL}/${id}`, dataToSend);
       dispatch({
         type: UPDATE_MENSAJE,
-        payload: res.data || dataToSend, // Fallback si la API no retorna el objeto (Put retorna NoContent a veces)
+        payload: res.data || dataToSend,
       });
-      // Si la API retorna 204 No Content, actualizamos el state localmente
       if (res.status === 204) {
         dispatch({ type: UPDATE_MENSAJE, payload: dataToSend });
       }

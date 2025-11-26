@@ -27,21 +27,17 @@ import {
   Search,
   RefreshCw,
   Users,
-  Footprints, // Icono Pasos
-  Ruler, // Icono Distancia
-  Clock, // Icono Duración
-  MessageCircle, // Icono Comentarios
+  Footprints,
+  Ruler,
+  Clock,
+  MessageCircle,
 } from "lucide-react";
-
-// --- 1. CONTEXTO Y REDUCER ---
 
 const ActividadesContext = createContext();
 
-// Tipos de Acciones
 const GET_ACTIVIDADES_BY_USER = "GET_ACTIVIDADES_BY_USER";
 const GET_USERS_LIST = "GET_USERS_LIST";
 
-// Helper para extraer datos
 const extractData = (payload) => {
   if (payload && payload.$values) {
     return payload.$values;
@@ -72,8 +68,6 @@ const ActividadesReducer = (state, action) => {
   }
 };
 
-// --- 2. STATE (Lógica de Negocio) ---
-
 const API_ACTIVIDADES_URL = "http://localhost:5219/api/Actividades";
 const API_USUARIOS_URL = "http://localhost:5219/api/Usuarios";
 
@@ -85,7 +79,6 @@ const ActividadesState = ({ children }) => {
 
   const [state, dispatch] = useReducer(ActividadesReducer, initialState);
 
-  // GET /api/Actividades/{idUsuario}
   const getActividadesByUsuario = async (idUsuario) => {
     try {
       const res = await axios.get(`${API_ACTIVIDADES_URL}/${idUsuario}`);
@@ -96,7 +89,6 @@ const ActividadesState = ({ children }) => {
     }
   };
 
-  // GET /api/Usuarios (Para el selector)
   const getUsers = async () => {
     try {
       const res = await axios.get(API_USUARIOS_URL);
@@ -120,10 +112,8 @@ const ActividadesState = ({ children }) => {
   );
 };
 
-// --- 3. COMPONENTES UI ---
-
 const kairosTheme = {
-  primary: "#4ecca3", // Verde Ment
+  primary: "#4ecca3",
   secondary: "#6c757d",
   success: "#28a745",
   danger: "#e74c3c",
@@ -132,7 +122,7 @@ const kairosTheme = {
   light: "#f8f9fa",
   dark: "#2c3e50",
   white: "#ffffff",
-  purple: "#6f42c1", // Color extra para actividad
+  purple: "#6f42c1",
   bodyBg: "#f4f6f9",
 };
 
@@ -150,19 +140,16 @@ const MonitorActividadContent = () => {
   const [currentUserId, setCurrentUserId] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Carga inicial de usuarios
   useEffect(() => {
     getUsers();
   }, []);
 
-  // Seleccionar primer usuario por defecto
   useEffect(() => {
     if (users.length > 0 && !currentUserId) {
       setCurrentUserId(users[0].idUsuario);
     }
   }, [users, currentUserId]);
 
-  // Cargar actividades al cambiar usuario
   useEffect(() => {
     if (currentUserId) {
       loadActividades(currentUserId);
@@ -191,7 +178,6 @@ const MonitorActividadContent = () => {
     setCurrentUserId(parseInt(e.target.value));
   };
 
-  // Filtrado
   const filteredData = actividades.filter((item) => {
     const lugar = (item.idLugarNavigation?.nombre || "").toLowerCase();
     const comentarios = (item.comentarios || "").toLowerCase();
@@ -199,7 +185,6 @@ const MonitorActividadContent = () => {
     return lugar.includes(search) || comentarios.includes(search);
   });
 
-  // Cálculos de Estadísticas
   const totalActividades = filteredData.length;
   const totalPasos = filteredData.reduce(
     (acc, curr) => acc + (curr.pasos || 0),
@@ -220,7 +205,6 @@ const MonitorActividadContent = () => {
         ).toFixed(1)
       : 0;
 
-  // Renderizado de Estrellas
   const renderStars = (count) => {
     return [...Array(5)].map((_, i) => (
       <Star
@@ -232,7 +216,6 @@ const MonitorActividadContent = () => {
     ));
   };
 
-  // Formato de Fecha
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleString("es-ES", {
@@ -243,7 +226,6 @@ const MonitorActividadContent = () => {
     });
   };
 
-  // Cálculo de Duración
   const calculateDuration = (start, end) => {
     if (!start || !end) return "N/A";
     const diff = new Date(end) - new Date(start);
@@ -271,7 +253,6 @@ const MonitorActividadContent = () => {
       `}</style>
 
       <Container fluid className="p-4">
-        {/* Header */}
         <div
           style={{
             background: `linear-gradient(135deg, ${kairosTheme.purple} 0%, #a29bfe 100%)`,
@@ -355,7 +336,6 @@ const MonitorActividadContent = () => {
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        {/* Stats Cards */}
         <Row className="mb-4 g-3">
           <Col md={3}>
             <Card
@@ -445,7 +425,6 @@ const MonitorActividadContent = () => {
           </Col>
         </Row>
 
-        {/* Filtro y Tabla */}
         <Card className="border-0 shadow-sm" style={{ borderRadius: "12px" }}>
           <Card.Header className="bg-white border-0 pt-4 px-4">
             <InputGroup style={{ maxWidth: "400px" }}>
