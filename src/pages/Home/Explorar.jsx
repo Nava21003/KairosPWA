@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Container, Row, Col, Button, Modal } from "react-bootstrap";
+import { Container, Row, Col, Button, Modal, Form } from "react-bootstrap";
 import {
   MapPin,
   Star,
@@ -10,77 +10,137 @@ import {
   ChevronLeft,
   ChevronUp,
   ChevronDown,
+  Sliders,
+  Check,
 } from "lucide-react";
 
 // URL Base de tu API
 const API_BASE_URL = "http://localhost:5219/";
 
+const CITY_OPTIONS = [
+  { label: "León", value: "León, Guanajuato", displayTitle: "León, Gto." },
+  {
+    label: "CDMX",
+    value: "Ciudad de México",
+    displayTitle: "Ciudad de México",
+  },
+  {
+    label: "Guanajuato",
+    value: "Guanajuato, Guanajuato",
+    displayTitle: "Guanajuato Capital",
+  },
+];
+
 const Explorar = () => {
-  // === 1. ESTADOS LOCALES (Reemplazando Contextos) ===
+  // === 1. ESTADOS DE DATOS ===
   const [promociones, setPromociones] = useState([]);
   const [pois, setPois] = useState([]);
   const [lugares, setLugares] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados de UI
-  const [showModal, setShowModal] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0); // Para el directorio
-  const [currentPromoSlide, setCurrentPromoSlide] = useState(0); // Para el slider de promociones
-  const [currentPoiIndex, setCurrentPoiIndex] = useState(0); // Para el slider de POIs
+  // === 2. ESTADOS DE FILTRO ===
+  const [filters, setFilters] = useState({
+    city: "León, Guanajuato",
+    categories: [],
+  });
 
-  // === 2. REFERENCIAS Y NAVEGACIÓN ===
+  // Listas filtradas que se usarán en la UI
+  const [filteredLugares, setFilteredLugares] = useState([]);
+  // NOTA: filteredPois se calcula dinámicamente o en useEffect, aquí lo haremos dinámico en el render para simplificar,
+  // pero para los índices es mejor tenerlo controlado.
+
+  // === 3. ESTADOS DE UI ===
+  const [showModal, setShowModal] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
+  const [currentPoiIndex, setCurrentPoiIndex] = useState(0); // Índice para el slider de POIs
+  const [currentIndex, setCurrentIndex] = useState(0); // ScrollSpy
+
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
   const section3Ref = useRef(null);
   const section4Ref = useRef(null);
-
   const sections = [section1Ref, section2Ref, section3Ref, section4Ref];
-  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Helper para extraer datos si vienen en formato $values (común en .NET)
   const extractData = (data) => {
     if (data && data.$values) return data.$values;
     if (Array.isArray(data)) return data;
     return [];
   };
 
-  // === 3. CARGAR DATOS (fetch directo) ===
+  const getCurrentCityDisplay = () => {
+    const cityObj = CITY_OPTIONS.find((c) => c.value === filters.city);
+    return cityObj ? cityObj.displayTitle : filters.city;
+  };
+
+  // === 4. CARGAR DATOS ===
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Hacemos las peticiones en paralelo
-        const [promosRes, poisRes, lugaresRes] = await Promise.allSettled([
-          fetch(`${API_BASE_URL}api/Promociones`),
-          fetch(`${API_BASE_URL}api/PuntosInteres`),
-          fetch(`${API_BASE_URL}api/Lugares`),
-        ]);
+        const [promosRes, poisRes, lugaresRes, catRes] =
+          await Promise.allSettled([
+            fetch(`${API_BASE_URL}api/Promociones`),
+            fetch(`${API_BASE_URL}api/PuntosInteres`),
+            fetch(`${API_BASE_URL}api/Lugares`),
+            fetch(`${API_BASE_URL}api/Categorias`),
+          ]);
 
-        if (promosRes.status === "fulfilled") {
-          const data = await promosRes.value.json();
-          setPromociones(extractData(data));
-        }
-
-        if (poisRes.status === "fulfilled") {
-          const data = await poisRes.value.json();
-          setPois(extractData(data));
-        }
-
-        if (lugaresRes.status === "fulfilled") {
-          const data = await lugaresRes.value.json();
-          setLugares(extractData(data));
-        }
+        if (promosRes.status === "fulfilled")
+          setPromociones(extractData(await promosRes.value.json()));
+        if (poisRes.status === "fulfilled")
+          setPois(extractData(await poisRes.value.json()));
+        if (lugaresRes.status === "fulfilled")
+          setLugares(extractData(await lugaresRes.value.json()));
+        if (catRes.status === "fulfilled")
+          setCategorias(extractData(await catRes.value.json()));
       } catch (error) {
         console.error("Error cargando datos:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // === 4. LÓGICA DE SCROLL ===
+  // === 5. LÓGICA DE FILTRADO (LUGARES Y RESET DE INDICES) ===
+  useEffect(() => {
+    // A. Filtrar Lugares (Directorio)
+    let results = lugares;
+    if (filters.city) {
+      results = results.filter(
+        (l) =>
+          l.direccion &&
+          l.direccion.toLowerCase().includes(filters.city.toLowerCase())
+      );
+    }
+    if (filters.categories.length > 0) {
+      results = results.filter((l) =>
+        filters.categories.includes(l.idCategoria)
+      );
+    }
+    setFilteredLugares(results);
+
+    // B. Resetear Sliders cuando cambia el filtro
+    setCurrentSlide(0); // Directorio
+    setCurrentPoiIndex(0); // POIs
+    setCurrentPromoSlide(0); // Promociones
+  }, [filters, lugares]);
+
+  const toggleCategory = (catId) => {
+    setFilters((prev) => {
+      const exists = prev.categories.includes(catId);
+      return {
+        ...prev,
+        categories: exists
+          ? prev.categories.filter((id) => id !== catId)
+          : [...prev.categories, catId],
+      };
+    });
+  };
+
+  // === 6. LÓGICA DE SCROLL ===
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + window.innerHeight / 2;
@@ -92,24 +152,9 @@ const Explorar = () => {
       });
       setCurrentIndex(newIndex);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const scrollToSection = (direction) => {
-    let nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (nextIndex < 0) nextIndex = 0;
-    if (nextIndex >= sections.length) nextIndex = sections.length - 1;
-
-    if (sections[nextIndex].current) {
-      sections[nextIndex].current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      setCurrentIndex(nextIndex);
-    }
-  };
 
   const jumpToSection = (index) => {
     if (sections[index].current) {
@@ -121,20 +166,26 @@ const Explorar = () => {
     }
   };
 
-  // === 5. HELPERS Y LOGICA DE IMAGEN ===
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const options = { day: "numeric", month: "short" };
-    return new Date(dateString).toLocaleDateString("es-ES", options);
+  const scrollToSection = (direction) => {
+    let nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0) nextIndex = 0;
+    if (nextIndex >= sections.length) nextIndex = sections.length - 1;
+    jumpToSection(nextIndex);
   };
 
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/800x600?text=No+Image";
-    // Si ya trae http es url absoluta, si no, le pegamos la base
     return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
   };
 
-  // --- LÓGICA DE SLIDERS ---
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+    });
+  };
+
   const chunkArray = (array, size) => {
     const chunked = [];
     if (!array) return [];
@@ -144,25 +195,48 @@ const Explorar = () => {
     return chunked;
   };
 
-  // 1. Directorio (Lugares) - De 2 en 2
-  const lugaresSlides = chunkArray(lugares, 2);
-  const nextSlide = () =>
-    setCurrentSlide((prev) =>
-      prev === lugaresSlides.length - 1 ? 0 : prev + 1
-    );
-  const prevSlide = () =>
-    setCurrentSlide((prev) =>
-      prev === 0 ? lugaresSlides.length - 1 : prev - 1
-    );
+  // --- LÓGICA DE SLIDERS FILTRADOS ---
 
-  // 2. Promociones - De 3 en 3 (FILTRADAS)
+  // 1. POIS FILTRADOS (NUEVO)
+  const filteredPois = pois.filter((poi) => {
+    if (poi.idLugarNavigation && poi.idLugarNavigation.direccion) {
+      return poi.idLugarNavigation.direccion
+        .toLowerCase()
+        .includes(filters.city.toLowerCase());
+    }
+    return false;
+  });
+
+  const nextPoi = () => {
+    if (!filteredPois || filteredPois.length === 0) return;
+    setCurrentPoiIndex((prev) =>
+      prev === filteredPois.length - 1 ? 0 : prev + 1
+    );
+  };
+  const prevPoi = () => {
+    if (!filteredPois || filteredPois.length === 0) return;
+    setCurrentPoiIndex((prev) =>
+      prev === 0 ? filteredPois.length - 1 : prev - 1
+    );
+  };
+
+  // Obtenemos el POI actual de la lista FILTRADA
+  const currentPoiData =
+    filteredPois.length > 0 ? filteredPois[currentPoiIndex] : null;
+
+  // 2. PROMOCIONES FILTRADAS
   const today = new Date();
   const validPromociones = promociones.filter((p) => {
     const endDate = new Date(p.fechaFin);
-    // Filtrar por estatus activo Y fecha de fin futura o igual a hoy
-    return p.estatus === true && endDate >= today;
+    const isActive = p.estatus === true && endDate >= today;
+    let matchesCity = true;
+    if (p.idLugarNavigation && p.idLugarNavigation.direccion) {
+      matchesCity = p.idLugarNavigation.direccion
+        .toLowerCase()
+        .includes(filters.city.toLowerCase());
+    }
+    return isActive && matchesCity;
   });
-
   const promocionesSlides = chunkArray(validPromociones, 3);
 
   const nextPromoSlide = () =>
@@ -174,24 +248,20 @@ const Explorar = () => {
       prev === 0 ? promocionesSlides.length - 1 : prev - 1
     );
 
-  // 3. Slider de Puntos de Interés (POI)
-  const nextPoi = () => {
-    if (!pois || pois.length === 0) return;
-    setCurrentPoiIndex((prev) => (prev === pois.length - 1 ? 0 : prev + 1));
-  };
-
-  const prevPoi = () => {
-    if (!pois || pois.length === 0) return;
-    setCurrentPoiIndex((prev) => (prev === 0 ? pois.length - 1 : prev - 1));
-  };
-
-  const currentPoiData = pois && pois.length > 0 ? pois[currentPoiIndex] : null;
+  // 3. DIRECTORIO (Ya filtrado en useEffect)
+  const lugaresSlides = chunkArray(filteredLugares, 2);
+  const nextSlide = () =>
+    setCurrentSlide((prev) =>
+      prev === lugaresSlides.length - 1 ? 0 : prev + 1
+    );
+  const prevSlide = () =>
+    setCurrentSlide((prev) =>
+      prev === 0 ? lugaresSlides.length - 1 : prev - 1
+    );
 
   return (
     <>
-      {/* ==========================================
-          SECCIÓN 1: HERO
-          ========================================== */}
+      {/* SECCIÓN 1: HERO */}
       <section
         ref={section1Ref}
         className="hero-section full-screen-section text-white position-relative overflow-hidden"
@@ -226,20 +296,30 @@ const Explorar = () => {
             <Col lg={8} className="text-center">
               <div className="hero-badge mb-4 mx-auto">
                 <span className="badge rounded-pill px-4 py-2 custom-glass-badge">
-                  <Compass size={16} /> KAIROS EXPLORER
+                  {filters.categories.length > 0 ? (
+                    <>
+                      <CheckCircle size={16} /> FILTROS ACTIVOS
+                    </>
+                  ) : (
+                    <>
+                      <Compass size={16} /> KAIROS EXPLORER
+                    </>
+                  )}
                 </span>
               </div>
               <h1 className="display-3 fw-bold mb-4 hero-title text-white">
-                Descubre tu <br />
+                Descubre <br />{" "}
                 <span className="text-gradient-green d-block">
-                  Próxima Historia
+                  {getCurrentCityDisplay()}
                 </span>
               </h1>
               <p
                 className="lead mb-5 mx-auto text-white-50"
                 style={{ maxWidth: "600px" }}
               >
-                Una colección curada de experiencias en León, Gto.
+                {filters.categories.length > 0
+                  ? `Mostrando ${filteredLugares.length} lugares basados en tus intereses.`
+                  : `Una colección curada de experiencias en ${getCurrentCityDisplay()}.`}
               </p>
               <div className="d-flex gap-3 mb-4 flex-wrap justify-content-center">
                 <Button
@@ -249,19 +329,24 @@ const Explorar = () => {
                 >
                   Explorar Ahora
                 </Button>
+                <Button
+                  onClick={() => setShowModal(true)}
+                  size="lg"
+                  variant="outline-light"
+                  className="rounded-pill px-4 d-flex align-items-center gap-2 glass-button"
+                >
+                  <Sliders size={20} /> Personalizar
+                </Button>
               </div>
             </Col>
           </Row>
         </Container>
       </section>
 
-      {/* ==========================================
-          SECCIÓN 2: PROMOCIONES (SLIDER DE 3)
-          ========================================== */}
+      {/* SECCIÓN 2: PROMOCIONES */}
       <section
         ref={section2Ref}
         className="full-screen-section position-relative"
-        // CAMBIO: Fondo claro (#f8f9fa) y min-height
         style={{
           minHeight: "100vh",
           height: "auto",
@@ -274,13 +359,11 @@ const Explorar = () => {
           <div className="text-center mb-5">
             <span className="section-label">Ahorra y Disfruta</span>
             <h2 className="display-5 fw-bold text-dark mt-3">
-              Promociones Destacadas
+              Promociones en {getCurrentCityDisplay()}
             </h2>
           </div>
-
           {promocionesSlides.length > 0 ? (
             <div className="slider-container">
-              {/* Botón Anterior Promo */}
               <button
                 className="nav-arrow left"
                 onClick={prevPromoSlide}
@@ -288,7 +371,6 @@ const Explorar = () => {
               >
                 <ChevronLeft size={24} />
               </button>
-
               <div className="slider-track-wrapper">
                 <div
                   className="slider-track"
@@ -354,8 +436,6 @@ const Explorar = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Botón Siguiente Promo */}
               <button
                 className="nav-arrow right"
                 onClick={nextPromoSlide}
@@ -368,14 +448,14 @@ const Explorar = () => {
             <Col className="text-center text-muted py-5">
               {loading
                 ? "Cargando promociones..."
-                : "No hay promociones vigentes por el momento."}
+                : "No hay promociones vigentes en esta zona."}
             </Col>
           )}
         </Container>
       </section>
 
       {/* ==========================================
-          SECCIÓN 3: PUNTOS DE INTERÉS (SLIDER)
+          SECCIÓN 3: PUNTOS DE INTERÉS (AHORA FILTRADO)
           ========================================== */}
       <section
         ref={section3Ref}
@@ -390,9 +470,7 @@ const Explorar = () => {
               style={{
                 position: "absolute",
                 inset: 0,
-                backgroundImage: `url('${getImageUrl(
-                  currentPoiData.idLugarNavigation?.imagen
-                )}')`,
+                backgroundImage: `url('${getImageUrl(currentPoiData.idLugarNavigation?.imagen)}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 opacity: 0.6,
@@ -400,7 +478,6 @@ const Explorar = () => {
                 zIndex: 0,
               }}
             ></div>
-
             <div
               style={{
                 position: "absolute",
@@ -421,20 +498,17 @@ const Explorar = () => {
                     {currentPoiData.etiqueta || "Tendencia"}
                   </span>
                 </div>
-
                 <h2 className="display-2 fw-bold mb-2 animate-up delay-2">
                   {currentPoiData.idLugarNavigation?.nombre ||
                     "Lugar Increíble"}
                 </h2>
-
                 <div className="d-flex align-items-center justify-content-center gap-2 mb-4 text-white-50 animate-up delay-3">
                   <MapPin size={20} className="text-warning" />
                   <span className="fs-5">
                     {currentPoiData.idLugarNavigation?.direccion ||
-                      "León, Guanajuato"}
+                      getCurrentCityDisplay()}
                   </span>
                 </div>
-
                 <p
                   className="lead mx-auto mb-5 text-light opacity-75 animate-up delay-4"
                   style={{ maxWidth: "700px" }}
@@ -448,33 +522,38 @@ const Explorar = () => {
                 </p>
               </div>
 
-              <button
-                className="poi-nav-arrow left"
-                onClick={prevPoi}
-                aria-label="Anterior lugar"
-              >
-                <ChevronLeft size={32} />
-              </button>
+              {/* Botones de navegación POI */}
+              {filteredPois.length > 1 && (
+                <>
+                  <button
+                    className="poi-nav-arrow left"
+                    onClick={prevPoi}
+                    aria-label="Anterior lugar"
+                  >
+                    <ChevronLeft size={32} />
+                  </button>
+                  <button
+                    className="poi-nav-arrow right"
+                    onClick={nextPoi}
+                    aria-label="Siguiente lugar"
+                  >
+                    <ChevronRight size={32} />
+                  </button>
+                </>
+              )}
 
-              <button
-                className="poi-nav-arrow right"
-                onClick={nextPoi}
-                aria-label="Siguiente lugar"
-              >
-                <ChevronRight size={32} />
-              </button>
-
-              <div className="poi-dots-container">
-                {pois.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`poi-dot ${
-                      currentPoiIndex === idx ? "active" : ""
-                    }`}
-                    onClick={() => setCurrentPoiIndex(idx)}
-                  ></div>
-                ))}
-              </div>
+              {/* Dots de navegación (Mapeamos filteredPois) */}
+              {filteredPois.length > 1 && (
+                <div className="poi-dots-container">
+                  {filteredPois.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`poi-dot ${currentPoiIndex === idx ? "active" : ""}`}
+                      onClick={() => setCurrentPoiIndex(idx)}
+                    ></div>
+                  ))}
+                </div>
+              )}
             </Container>
           </>
         ) : (
@@ -482,19 +561,16 @@ const Explorar = () => {
             <h3 className="text-white">
               {loading
                 ? "Cargando experiencias..."
-                : "Explora los mejores lugares."}
+                : `No hay puntos de interés destacados en ${getCurrentCityDisplay()}.`}
             </h3>
           </Container>
         )}
       </section>
 
-      {/* ==========================================
-          SECCIÓN 4: DIRECTORIO
-          ========================================== */}
+      {/* SECCIÓN 4: DIRECTORIO */}
       <section
         ref={section4Ref}
         className="full-screen-section position-relative"
-        // CAMBIO: Fondo claro (#f8f9fa)
         style={{ backgroundColor: "#f8f9fa" }}
       >
         <div
@@ -509,10 +585,9 @@ const Explorar = () => {
             <br />
             <h2 className="display-5 fw-bold text-dark">Directorio Local</h2>
             <p className="text-secondary lead">
-              Explora todo lo que la ciudad tiene para ofrecer
+              {filteredLugares.length} lugares en {getCurrentCityDisplay()}
             </p>
           </div>
-
           {lugaresSlides.length > 0 ? (
             <div className="slider-container">
               <button
@@ -522,7 +597,6 @@ const Explorar = () => {
               >
                 <ChevronLeft size={24} />
               </button>
-
               <div className="slider-track-wrapper">
                 <div
                   className="slider-track"
@@ -589,7 +663,6 @@ const Explorar = () => {
                   ))}
                 </div>
               </div>
-
               <button
                 className="nav-arrow right"
                 onClick={nextSlide}
@@ -602,15 +675,21 @@ const Explorar = () => {
             <div className="text-center py-5">
               {loading
                 ? "Cargando directorio..."
-                : "No hay lugares disponibles."}
+                : `No encontramos lugares en ${getCurrentCityDisplay()} con esos filtros.`}
+              <Button
+                variant="link"
+                onClick={() =>
+                  setFilters({ city: filters.city, categories: [] })
+                }
+              >
+                Ver todos en esta ciudad
+              </Button>
             </div>
           )}
         </Container>
       </section>
 
-      {/* ==========================================
-          NAVEGACIÓN LATERAL
-          ========================================== */}
+      {/* NAVEGACIÓN LATERAL */}
       <div className="nav-dock-minimal">
         <button
           className="nav-btn-mini"
@@ -619,7 +698,6 @@ const Explorar = () => {
         >
           <ChevronUp size={16} />
         </button>
-
         <div className="nav-indicators-mini">
           {sections.map((_, idx) => (
             <div
@@ -629,7 +707,6 @@ const Explorar = () => {
             ></div>
           ))}
         </div>
-
         <button
           className="nav-btn-mini"
           onClick={() => scrollToSection("down")}
@@ -639,223 +716,130 @@ const Explorar = () => {
         </button>
       </div>
 
-      {/* Modal Intereses */}
+      {/* MODAL */}
       <Modal
         show={showModal}
         onHide={() => setShowModal(false)}
         centered
         contentClassName="border-0 shadow-lg rounded-4"
+        size="lg"
       >
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title>Personaliza tu Kairos</Modal.Title>
+        <Modal.Header closeButton className="border-0 pb-0 ps-4 pt-4">
+          <Modal.Title className="fw-bold d-flex align-items-center gap-2">
+            <Sliders size={24} className="text-success" /> Personaliza tu Kairos
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <p className="text-muted">Selecciona tus intereses...</p>
+        <Modal.Body className="p-4">
+          <Form>
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-bold">¿Dónde te encuentras?</Form.Label>
+              <div className="d-flex gap-3">
+                {CITY_OPTIONS.map((cityOption) => (
+                  <div
+                    key={cityOption.value}
+                    onClick={() =>
+                      setFilters({ ...filters, city: cityOption.value })
+                    }
+                    className={`p-3 rounded-3 border cursor-pointer text-center flex-grow-1 transition-all ${filters.city === cityOption.value ? "border-success bg-success bg-opacity-10 text-success fw-bold" : "border-light bg-light text-muted"}`}
+                    style={{ cursor: "pointer", transition: "0.2s" }}
+                  >
+                    <MapPin size={18} className="mb-1 d-block mx-auto" />{" "}
+                    {cityOption.label}
+                  </div>
+                ))}
+              </div>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label className="fw-bold">¿Qué te interesa hoy?</Form.Label>
+              <div className="d-flex flex-wrap gap-2">
+                {categorias.map((cat) => {
+                  const isSelected = filters.categories.includes(
+                    cat.idCategoria
+                  );
+                  return (
+                    <div
+                      key={cat.idCategoria}
+                      onClick={() => toggleCategory(cat.idCategoria)}
+                      className={`px-3 py-2 rounded-pill border cursor-pointer user-select-none d-flex align-items-center gap-2 ${isSelected ? "bg-dark text-white border-dark" : "bg-white text-secondary border-secondary-subtle"}`}
+                      style={{ cursor: "pointer", transition: "0.2s" }}
+                    >
+                      {cat.nombre} {isSelected && <Check size={14} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </Form.Group>
+          </Form>
         </Modal.Body>
+        <Modal.Footer className="border-0 p-4 pt-0">
+          <Button
+            variant="light"
+            onClick={() =>
+              setFilters({ city: "León, Guanajuato", categories: [] })
+            }
+            className="me-auto text-muted"
+          >
+            Restablecer
+          </Button>
+          <Button
+            className="btn-kairos-primary rounded-pill px-4"
+            onClick={() => setShowModal(false)}
+          >
+            Aplicar Cambios
+          </Button>
+        </Modal.Footer>
       </Modal>
 
-      {/* ==========================================
-          ESTILOS CSS
-          ========================================== */}
       <style>{`
-        :root {
-          --color-primary: #1e4d2b;
-          --color-secondary: #2d7a3e;
-          --color-accent: #3d9651;
-        }
-        .full-screen-section {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 0;
-          position: relative;
-        }
-        .hover-lift {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .hover-lift:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-        }
-
-        /* === NAV DOCK MINIMALISTA === */
-        .nav-dock-minimal {
-            position: fixed;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            z-index: 1000;
-            padding: 5px;
-        }
-        
-        .nav-btn-mini {
-            background: rgba(0,0,0,0.5);
-            border: none;
-            color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+        :root { --color-primary: #1e4d2b; --color-secondary: #2d7a3e; --color-accent: #3d9651; }
+        .full-screen-section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 0; position: relative; }
+        .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+        .glass-button { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; }
+        .glass-button:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+        .nav-dock-minimal { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 1000; padding: 5px; }
+        .nav-btn-mini { background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
         .nav-btn-mini:hover:not(:disabled) { background: var(--color-primary); }
         .nav-btn-mini:disabled { opacity: 0; pointer-events: none; }
-
         .nav-indicators-mini { display: flex; flex-direction: column; gap: 8px; margin: 5px 0; }
-        .nav-dot-mini {
-            width: 8px; height: 8px;
-            background-color: rgba(0,0,0,0.3);
-            border-radius: 50%; cursor: pointer; transition: 0.3s;
-            border: 1px solid rgba(255,255,255,0.5);
-        }
-        .nav-dot-mini.active {
-            background-color: var(--color-primary);
-            transform: scale(1.4);
-            border-color: var(--color-primary);
-        }
-
-        /* === ESTILOS POI SLIDER === */
+        .nav-dot-mini { width: 8px; height: 8px; background-color: rgba(0,0,0,0.3); border-radius: 50%; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.5); }
+        .nav-dot-mini.active { background-color: var(--color-primary); transform: scale(1.4); border-color: var(--color-primary); }
         .poi-content-wrapper { position: relative; z-index: 20; }
-        
-        .poi-tag-badge {
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.4);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 50px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.8rem;
-        }
-
-        .poi-nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 30;
-        }
-        .poi-nav-arrow:hover {
-            background: white; color: black; border-color: white;
-        }
+        .poi-tag-badge { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
+        .poi-nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: transparent; border: 2px solid rgba(255,255,255,0.3); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; z-index: 30; }
+        .poi-nav-arrow:hover { background: white; color: black; border-color: white; }
         .poi-nav-arrow.left { left: 40px; }
         .poi-nav-arrow.right { right: 40px; }
-
-        /* === DOTS AJUSTADOS === */
-        .poi-dots-container {
-            position: absolute;
-            bottom: 20px; /* Se mantienen bien abajo */
-            left: 50%;
-            transform: translateX(-50%); /* Centrado horizontal */
-            display: flex;
-            gap: 10px;
-            z-index: 30;
-        }
-        .poi-dot {
-            width: 12px; height: 12px; background: rgba(255,255,255,0.3);
-            border-radius: 50%; cursor: pointer; transition: 0.3s;
-        }
+        .poi-dots-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 30; }
+        .poi-dot { width: 12px; height: 12px; background: rgba(255,255,255,0.3); border-radius: 50%; cursor: pointer; transition: 0.3s; }
         .poi-dot.active { background: white; transform: scale(1.2); }
-
-        /* Animaciones */
         .fade-in-img { animation: fadeIn 0.8s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 0.6; } }
-
         .animate-up { animation: fadeInUp 0.8s ease forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-        
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
-        .delay-4 { animation-delay: 0.4s; }
-        .delay-5 { animation-delay: 0.5s; }
-
-        /* Otros estilos */
-        .custom-glass-badge {
-             background: rgba(255, 255, 255, 0.15);
-             color: #ffffff;
-             border: 1px solid rgba(255, 255, 255, 0.3);
-             font-size: 0.9rem; fontWeight: 600;
-             display: inline-flex; alignItems: center; gap: 8px;
-             backdrop-filter: blur(10px);
-        }
-        .text-gradient-green {
-             background: linear-gradient(90deg, #fff, #90ee90);
-             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .btn-kairos-primary {
-             background-color: var(--color-primary); color: white; font-weight: 600; border: none;
-             transition: 0.3s;
-        }
-        .btn-kairos-primary:hover {
-             background-color: var(--color-accent); transform: translateY(-3px);
-             box-shadow: 0 10px 20px rgba(30, 77, 43, 0.3);
-        }
-        .bg-decor-circle {
-             position: absolute; width: 800px; height: 800px;
-             background: radial-gradient(circle, rgba(144, 238, 144, 0.08) 0%, transparent 70%);
-             top: 50%; transform: translate(-50%, -50%); pointer-events: none;
-        }
-        
-        /* Directorio */
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; } .delay-4 { animation-delay: 0.4s; }
+        .custom-glass-badge { background: rgba(255, 255, 255, 0.15); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.3); font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); }
+        .text-gradient-green { background: linear-gradient(90deg, #fff, #90ee90); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-kairos-primary { background-color: var(--color-primary); color: white; font-weight: 600; border: none; transition: 0.3s; }
+        .btn-kairos-primary:hover { background-color: var(--color-accent); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(30, 77, 43, 0.3); }
+        .bg-decor-circle { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(144, 238, 144, 0.08) 0%, transparent 70%); top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
         .slider-container { display: flex; align-items: center; gap: 20px; position: relative; padding: 20px 0;}
         .slider-track-wrapper { overflow: hidden; flex-grow: 1; border-radius: 24px; }
         .slider-track { display: flex; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); width: 100%; }
         .slider-slide { min-width: 100%; display: flex; flex-direction: column; gap: 25px; padding: 5px; }
-        .place-row-card {
-             background: white; border: 1px solid #f0f0f0; border-radius: 24px;
-             display: flex; overflow: hidden; min-height: 240px; transition: 0.3s;
-        }
+        .place-row-card { background: white; border: 1px solid #f0f0f0; border-radius: 24px; display: flex; overflow: hidden; min-height: 240px; transition: 0.3s; }
         .place-row-card:hover { box-shadow: 0 15px 40px rgba(0,0,0,0.1); transform: translateY(-3px); }
         .place-img { width: 40%; position: relative; }
         .place-img img { width: 100%; height: 100%; object-fit: cover; }
-        .place-cat {
-             position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.95);
-             padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800;
-             color: var(--color-primary);
-        }
+        .place-cat { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.95); padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; color: var(--color-primary); }
         .place-info { width: 60%; padding: 2rem; display: flex; flex-direction: column; }
-        .nav-arrow {
-             width: 50px; height: 50px; border-radius: 50%; background: white; border: 1px solid #eee;
-             display: flex; align-items: center; justify-content: center; cursor: pointer;
-             box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: 0.3s; flex-shrink: 0; z-index: 5;
-        }
+        .nav-arrow { width: 50px; height: 50px; border-radius: 50%; background: white; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: 0.3s; flex-shrink: 0; z-index: 5; }
         .nav-arrow:hover:not(:disabled) { background: var(--color-primary); color: white; transform: scale(1.1); }
         .nav-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
         .text-truncate-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-        .btn-icon-circle {
-             width: 38px; height: 38px; border-radius: 50%; border: 1px solid #eee;
-             background: #f8f9fa; display: flex; align-items: center; justify-content: center;
-             transition: 0.3s; color: var(--color-primary);
-        }
+        .btn-icon-circle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #eee; background: #f8f9fa; display: flex; align-items: center; justify-content: center; transition: 0.3s; color: var(--color-primary); }
         .btn-icon-circle:hover { background: var(--color-primary); color: white; }
-
-        @media (max-width: 991px) {
-           .nav-dock-minimal { display: none; }
-           .poi-nav-arrow { width: 40px; height: 40px; }
-           .poi-nav-arrow.left { left: 10px; }
-           .poi-nav-arrow.right { right: 10px; }
-           .place-row-card { flex-direction: column; }
-           .place-img { width: 100%; height: 200px; }
-           .place-info { width: 100%; }
-        }
+        @media (max-width: 991px) { .nav-dock-minimal { display: none; } .poi-nav-arrow { width: 40px; height: 40px; } .poi-nav-arrow.left { left: 10px; } .poi-nav-arrow.right { right: 10px; } .place-row-card { flex-direction: column; } .place-img { width: 100%; height: 200px; } .place-info { width: 100%; } }
       `}</style>
     </>
   );

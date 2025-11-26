@@ -1,4 +1,10 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import {
   Container,
   Card,
@@ -30,6 +36,7 @@ import {
   Search,
   Filter,
   Calendar,
+  Camera, // Agregado para el botón de subir foto
 } from "lucide-react";
 
 import UserContext from "../../Context/User/UserContext";
@@ -101,6 +108,7 @@ const UsuarioModal = ({
   loading,
 }) => {
   const isEditing = usuario !== null;
+  const fileInputRef = useRef(null); // Referencia para el input de archivo
 
   const initialFormData = {
     idRol: 2,
@@ -109,6 +117,7 @@ const UsuarioModal = ({
     correo: "",
     contrasena: "",
     estatus: true,
+    fotoPerfil: "", // Nuevo campo agregado
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -124,6 +133,7 @@ const UsuarioModal = ({
         idRol: usuario.idRol ? parseInt(usuario.idRol) : 2,
         contrasena: "",
         estatus: usuario.estatus ?? true,
+        fotoPerfil: usuario.fotoPerfil || "", // Cargar foto existente si la hay
       });
     } else if (!show) {
       // Resetear form cuando el modal se cierra
@@ -166,6 +176,31 @@ const UsuarioModal = ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  // Manejador para la carga de imagen (Convierte a Base64)
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validar tamaño (ej. max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("La imagen es demasiado grande. Máximo 2MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          fotoPerfil: reader.result, // Esto guarda el string Base64
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
   };
 
   const handleSubmit = (e) => {
@@ -215,6 +250,68 @@ const UsuarioModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
+          {/* SECCIÓN DE FOTO DE PERFIL AGREGADA */}
+          <div className="d-flex justify-content-center mb-4">
+            <div className="position-relative">
+              <div
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  border: `4px solid ${kairosTheme.light}`,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  backgroundColor: "#e9ecef",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {formData.fotoPerfil ? (
+                  <img
+                    src={formData.fotoPerfil}
+                    alt="Perfil"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <User size={60} color="#adb5bd" />
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={triggerFileInput}
+                style={{
+                  position: "absolute",
+                  bottom: "5px",
+                  right: "5px",
+                  borderRadius: "50%",
+                  width: "35px",
+                  height: "35px",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: kairosTheme.primary,
+                  border: "none",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                }}
+              >
+                <Camera size={18} />
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </div>
+          </div>
+
           <Row className="mb-3">
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
@@ -406,7 +503,6 @@ const UsuariosContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
 
-  // CORREGIDO: useCallback con dependencias vacías para evitar re-renders
   const memoizedGetUsers = useCallback(async () => {
     if (loading.users) return; // Evitar llamadas simultáneas
 
@@ -435,7 +531,6 @@ const UsuariosContent = () => {
     }
   }, [getRoles]);
 
-  // CORREGIDO: useEffect con dependencias vacías para ejecutar solo una vez
   useEffect(() => {
     const loadData = async () => {
       await memoizedGetUsers();
@@ -1099,25 +1194,49 @@ const UsuariosContent = () => {
                             #{u.idUsuario}
                           </Badge>
                         </td>
+                        {/* CELDA DE USUARIO MODIFICADA PARA INCLUIR FOTO */}
                         <td style={{ padding: "1rem" }}>
                           <div className="d-flex align-items-center">
-                            <div
-                              style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                backgroundColor: kairosTheme.primary,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginRight: "0.75rem",
-                                fontWeight: 700,
-                                color: kairosTheme.white,
-                                fontSize: "1.1rem",
-                              }}
-                            >
-                              {firstName.charAt(0).toUpperCase() || "U"}
-                            </div>
+                            {u.fotoPerfil ? (
+                              <div
+                                style={{
+                                  width: "40px",
+                                  height: "40px",
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                  marginRight: "0.75rem",
+                                  border: `2px solid ${kairosTheme.light}`,
+                                }}
+                              >
+                                <img
+                                  src={u.fotoPerfil}
+                                  alt={firstName}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  width: "40px",
+                                  height: "40px",
+                                  borderRadius: "50%",
+                                  backgroundColor: kairosTheme.primary,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  marginRight: "0.75rem",
+                                  fontWeight: 700,
+                                  color: kairosTheme.white,
+                                  fontSize: "1.1rem",
+                                }}
+                              >
+                                {firstName.charAt(0).toUpperCase() || "U"}
+                              </div>
+                            )}
                             <div>
                               <div className="fw-bold">
                                 {fullName || "Sin nombre"}
