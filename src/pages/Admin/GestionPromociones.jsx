@@ -18,26 +18,23 @@ import {
   Spinner,
   Badge,
   InputGroup,
-  Alert,
 } from "react-bootstrap";
 import {
   Tag,
   Plus,
   Pencil,
   Trash2,
-  Clock,
   Calendar,
   X,
   CheckCircle,
   XCircle,
-  Hash,
   Save,
   Search,
-  Filter,
   MapPin,
   Building,
   RefreshCw,
-  Power, // Icono agregado
+  Power,
+  Image as ImageIcon, // Icono para imagen
 } from "lucide-react";
 
 // --- 1. CONTEXTO Y REDUCER ---
@@ -45,8 +42,8 @@ import {
 const PromocionesContext = createContext();
 
 const GET_PROMOCIONES = "GET_PROMOCIONES";
-const GET_LUGARES_AUX = "GET_LUGARES_AUX"; // Para los dropdowns
-const GET_SOCIOS_AUX = "GET_SOCIOS_AUX"; // Para los dropdowns
+const GET_LUGARES_AUX = "GET_LUGARES_AUX";
+const GET_SOCIOS_AUX = "GET_SOCIOS_AUX";
 const CREATE_PROMOCION = "CREATE_PROMOCION";
 const UPDATE_PROMOCION = "UPDATE_PROMOCION";
 const DELETE_PROMOCION = "DELETE_PROMOCION";
@@ -112,7 +109,6 @@ const PromocionesState = ({ children }) => {
     }
   };
 
-  // Obtener lugares para el select del formulario
   const getLugares = async () => {
     try {
       const res = await axios.get(API_LUGARES);
@@ -122,7 +118,6 @@ const PromocionesState = ({ children }) => {
     }
   };
 
-  // Obtener socios para el select del formulario
   const getSocios = async () => {
     try {
       const res = await axios.get(API_SOCIOS);
@@ -242,6 +237,7 @@ const PromocionModal = ({
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
+    imagen: "", // Nuevo campo en estado
     idLugar: "",
     idSocio: "",
     fechaInicio: "",
@@ -256,6 +252,7 @@ const PromocionModal = ({
         idPromocion: promocion.idPromocion,
         titulo: promocion.titulo || "",
         descripcion: promocion.descripcion || "",
+        imagen: promocion.imagen || "", // Cargar imagen al editar
         idLugar: promocion.idLugar || "",
         idSocio: promocion.idSocio || "",
         fechaInicio: promocion.fechaInicio
@@ -268,6 +265,7 @@ const PromocionModal = ({
       setFormData({
         titulo: "",
         descripcion: "",
+        imagen: "", // Resetear imagen
         idLugar: "",
         idSocio: "",
         fechaInicio: "",
@@ -340,8 +338,9 @@ const PromocionModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
+          {/* Fila Titulo e Imagen */}
           <Row className="mb-3">
-            <Form.Group as={Col} md={12}>
+            <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
                 <Tag size={16} className="me-1" /> Título *
               </Form.Label>
@@ -357,7 +356,21 @@ const PromocionModal = ({
                 {formErrors.titulo}
               </Form.Control.Feedback>
             </Form.Group>
+
+            <Form.Group as={Col} md={6}>
+              <Form.Label className="fw-semibold">
+                <ImageIcon size={16} className="me-1" /> URL Imagen
+              </Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ej. uploads/promo.jpg o https://..."
+                name="imagen"
+                value={formData.imagen}
+                onChange={handleChange}
+              />
+            </Form.Group>
           </Row>
+
           <Form.Group className="mb-3">
             <Form.Label className="fw-semibold">
               <Building size={16} className="me-1" /> Descripción
@@ -371,6 +384,7 @@ const PromocionModal = ({
               onChange={handleChange}
             />
           </Form.Group>
+
           <Row className="mb-3">
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
@@ -542,18 +556,17 @@ const GestionPromocionesContent = () => {
     }
   };
 
-  // --- FUNCIÓN PARA ACTIVAR/DESACTIVAR DESDE LA TABLA ---
   const handleToggleStatus = async (promocion) => {
     if (loading.action) return;
     setLoading((p) => ({ ...p, action: true }));
     try {
-      // Creamos objeto limpio para evitar error 400 por referencias circulares
       const dataClean = {
         idPromocion: promocion.idPromocion,
         idLugar: promocion.idLugar,
         idSocio: promocion.idSocio,
         titulo: promocion.titulo,
         descripcion: promocion.descripcion,
+        imagen: promocion.imagen, // No olvidar incluir la imagen al cambiar estatus
         fechaInicio: promocion.fechaInicio,
         fechaFin: promocion.fechaFin,
         estatus: !promocion.estatus,
@@ -707,6 +720,7 @@ const GestionPromocionesContent = () => {
         </div>
 
         <Row className="mb-4 g-3">
+          {/* Tarjetas de Resumen (Sin cambios) */}
           <Col md={4}>
             <Card
               className="border-0 shadow-sm"
@@ -856,6 +870,7 @@ const GestionPromocionesContent = () => {
               >
                 <thead style={{ backgroundColor: kairosTheme.light }}>
                   <tr>
+                    <th className="p-3 text-center">Imagen</th>
                     <th className="p-3">Título</th>
                     <th className="p-3">Lugar</th>
                     <th className="p-3">Socio</th>
@@ -867,6 +882,37 @@ const GestionPromocionesContent = () => {
                 <tbody>
                   {filteredPromociones.map((p) => (
                     <tr key={p.idPromocion} style={{ transition: "0.2s" }}>
+                      <td className="p-3 text-center">
+                        {p.imagen ? (
+                          <img
+                            src={p.imagen}
+                            alt="promo"
+                            style={{
+                              width: "50px",
+                              height: "50px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                              border: "1px solid #dee2e6",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "50px",
+                              height: "50px",
+                              borderRadius: "8px",
+                              backgroundColor: "#f1f3f5",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              margin: "0 auto",
+                              color: "#adb5bd",
+                            }}
+                          >
+                            <ImageIcon size={24} />
+                          </div>
+                        )}
+                      </td>
                       <td className="p-3">
                         <div className="fw-bold">{p.titulo}</div>
                         <small className="text-muted">
@@ -952,7 +998,7 @@ const GestionPromocionesContent = () => {
                   ))}
                   {filteredPromociones.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="text-center p-5 text-muted">
+                      <td colSpan="7" className="text-center p-5 text-muted">
                         No hay promociones registradas.
                       </td>
                     </tr>

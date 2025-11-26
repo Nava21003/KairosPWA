@@ -257,7 +257,7 @@ const Registro = () => {
                       </Form.Label>
                       <Form.Control
                         type="password"
-                        placeholder="admin1234"
+                        placeholder="******"
                         className="form-control-custom"
                         required
                         value={accessPassword}

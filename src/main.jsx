@@ -12,24 +12,33 @@ import PromocionesState from "./Context/Promociones/PromocionesState.jsx";
 import UserState from "./Context/User/UserState.jsx";
 import CategoriasState from "./Context/Categorias/CategoriasState.jsx";
 import InteresesState from "./Context/Intereses/InteresesState.jsx";
+import PuntosInteresState from "./Context/PuntosInteres/PuntosInteresState.jsx";
+import FaqState from "./Context/Faq/FaqState.jsx";
+import MensajesState from "./Context/Mensajes/MensajesState.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AuthState>
-      <RoleState>
-        <PromocionesState>
-          <LugaresState>
-            <UserState>
-              <InteresesState>
-                <CategoriasState>
-                  <RouterProvider router={router} />
-                </CategoriasState>
-              </InteresesState>
-            </UserState>
-          </LugaresState>
-        </PromocionesState>
-      </RoleState>
-    </AuthState>
-    <ReloadPrompt />
+    <FaqState>
+      <MensajesState>
+        <AuthState>
+          <RoleState>
+            <PromocionesState>
+              <LugaresState>
+                <UserState>
+                  <InteresesState>
+                    <CategoriasState>
+                      <PuntosInteresState>
+                        <RouterProvider router={router} />
+                      </PuntosInteresState>
+                    </CategoriasState>
+                  </InteresesState>
+                </UserState>
+              </LugaresState>
+            </PromocionesState>
+          </RoleState>
+        </AuthState>
+        <ReloadPrompt />
+      </MensajesState>
+    </FaqState>
   </StrictMode>
 );

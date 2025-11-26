@@ -1,1557 +1,860 @@
-import React from "react";
-import { Container, Row, Col, Card } from "react-bootstrap";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Container, Row, Col, Button, Modal } from "react-bootstrap";
+import {
+  MapPin,
+  Star,
+  CheckCircle,
+  XCircle,
+  Compass,
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+
+// URL Base de tu API
+const API_BASE_URL = "http://localhost:5219/";
 
 const Explorar = () => {
+  // === 1. ESTADOS LOCALES (Reemplazando Contextos) ===
+  const [promociones, setPromociones] = useState([]);
+  const [pois, setPois] = useState([]);
+  const [lugares, setLugares] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estados de UI
+  const [showModal, setShowModal] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0); // Para el directorio
+  const [currentPromoSlide, setCurrentPromoSlide] = useState(0); // Para el slider de promociones
+  const [currentPoiIndex, setCurrentPoiIndex] = useState(0); // Para el slider de POIs
+
+  // === 2. REFERENCIAS Y NAVEGACIÓN ===
+  const section1Ref = useRef(null);
+  const section2Ref = useRef(null);
+  const section3Ref = useRef(null);
+  const section4Ref = useRef(null);
+
+  const sections = [section1Ref, section2Ref, section3Ref, section4Ref];
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Helper para extraer datos si vienen en formato $values (común en .NET)
+  const extractData = (data) => {
+    if (data && data.$values) return data.$values;
+    if (Array.isArray(data)) return data;
+    return [];
+  };
+
+  // === 3. CARGAR DATOS (fetch directo) ===
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Hacemos las peticiones en paralelo
+        const [promosRes, poisRes, lugaresRes] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}api/Promociones`),
+          fetch(`${API_BASE_URL}api/PuntosInteres`),
+          fetch(`${API_BASE_URL}api/Lugares`),
+        ]);
+
+        if (promosRes.status === "fulfilled") {
+          const data = await promosRes.value.json();
+          setPromociones(extractData(data));
+        }
+
+        if (poisRes.status === "fulfilled") {
+          const data = await poisRes.value.json();
+          setPois(extractData(data));
+        }
+
+        if (lugaresRes.status === "fulfilled") {
+          const data = await lugaresRes.value.json();
+          setLugares(extractData(data));
+        }
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // === 4. LÓGICA DE SCROLL ===
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + window.innerHeight / 2;
+      let newIndex = 0;
+      sections.forEach((section, index) => {
+        if (section.current && section.current.offsetTop <= scrollPosition) {
+          newIndex = index;
+        }
+      });
+      setCurrentIndex(newIndex);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToSection = (direction) => {
+    let nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0) nextIndex = 0;
+    if (nextIndex >= sections.length) nextIndex = sections.length - 1;
+
+    if (sections[nextIndex].current) {
+      sections[nextIndex].current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setCurrentIndex(nextIndex);
+    }
+  };
+
+  const jumpToSection = (index) => {
+    if (sections[index].current) {
+      sections[index].current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      setCurrentIndex(index);
+    }
+  };
+
+  // === 5. HELPERS Y LOGICA DE IMAGEN ===
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const options = { day: "numeric", month: "short" };
+    return new Date(dateString).toLocaleDateString("es-ES", options);
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return "https://via.placeholder.com/800x600?text=No+Image";
+    // Si ya trae http es url absoluta, si no, le pegamos la base
+    return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+  };
+
+  // --- LÓGICA DE SLIDERS ---
+  const chunkArray = (array, size) => {
+    const chunked = [];
+    if (!array) return [];
+    for (let i = 0; i < array.length; i += size) {
+      chunked.push(array.slice(i, i + size));
+    }
+    return chunked;
+  };
+
+  // 1. Directorio (Lugares) - De 2 en 2
+  const lugaresSlides = chunkArray(lugares, 2);
+  const nextSlide = () =>
+    setCurrentSlide((prev) =>
+      prev === lugaresSlides.length - 1 ? 0 : prev + 1
+    );
+  const prevSlide = () =>
+    setCurrentSlide((prev) =>
+      prev === 0 ? lugaresSlides.length - 1 : prev - 1
+    );
+
+  // 2. Promociones - De 3 en 3 (FILTRADAS)
+  const today = new Date();
+  const validPromociones = promociones.filter((p) => {
+    const endDate = new Date(p.fechaFin);
+    // Filtrar por estatus activo Y fecha de fin futura o igual a hoy
+    return p.estatus === true && endDate >= today;
+  });
+
+  const promocionesSlides = chunkArray(validPromociones, 3);
+
+  const nextPromoSlide = () =>
+    setCurrentPromoSlide((prev) =>
+      prev === promocionesSlides.length - 1 ? 0 : prev + 1
+    );
+  const prevPromoSlide = () =>
+    setCurrentPromoSlide((prev) =>
+      prev === 0 ? promocionesSlides.length - 1 : prev - 1
+    );
+
+  // 3. Slider de Puntos de Interés (POI)
+  const nextPoi = () => {
+    if (!pois || pois.length === 0) return;
+    setCurrentPoiIndex((prev) => (prev === pois.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevPoi = () => {
+    if (!pois || pois.length === 0) return;
+    setCurrentPoiIndex((prev) => (prev === 0 ? pois.length - 1 : prev - 1));
+  };
+
+  const currentPoiData = pois && pois.length > 0 ? pois[currentPoiIndex] : null;
+
   return (
     <>
-      {/* Sección 1: Hero Principal Mejorado */}
+      {/* ==========================================
+          SECCIÓN 1: HERO
+          ========================================== */}
       <section
-        className="exploration-hero-section text-white d-flex align-items-center position-relative"
-        aria-labelledby="main-title"
+        ref={section1Ref}
+        className="hero-section full-screen-section text-white position-relative overflow-hidden"
+        style={{ background: "#000" }}
       >
-        <div className="hero-overlay"></div>
+        <div
+          className="hero-bg-image"
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=2000')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.7,
+            zIndex: 0,
+          }}
+        ></div>
+        <div
+          className="hero-overlay"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%)",
+            zIndex: 1,
+          }}
+        ></div>
 
-        <div className="hero-particles">
-          <div className="particle particle-1"></div>
-          <div className="particle particle-2"></div>
-          <div className="particle particle-3"></div>
-          <div className="particle particle-4"></div>
-          <div className="particle particle-5"></div>
-        </div>
-
-        <Container className="py-5 position-relative" style={{ zIndex: 10 }}>
-          <Row className="justify-content-center text-center align-items-center min-vh-100">
-            <Col lg={10} xl={8}>
-              <div className="hero-content-wrapper">
-                <div className="hero-badge mb-4">
-                  <i className="bi bi-stars me-2"></i>
-                  Innovación Digital
-                </div>
-
-                <h1
-                  id="main-title"
-                  className="display-1 fw-bold mb-4 hero-title"
+        <Container className="position-relative" style={{ zIndex: 10 }}>
+          <Row className="align-items-center justify-content-center">
+            <Col lg={8} className="text-center">
+              <div className="hero-badge mb-4 mx-auto">
+                <span className="badge rounded-pill px-4 py-2 custom-glass-badge">
+                  <Compass size={16} /> KAIROS EXPLORER
+                </span>
+              </div>
+              <h1 className="display-3 fw-bold mb-4 hero-title text-white">
+                Descubre tu <br />
+                <span className="text-gradient-green d-block">
+                  Próxima Historia
+                </span>
+              </h1>
+              <p
+                className="lead mb-5 mx-auto text-white-50"
+                style={{ maxWidth: "600px" }}
+              >
+                Una colección curada de experiencias en León, Gto.
+              </p>
+              <div className="d-flex gap-3 mb-4 flex-wrap justify-content-center">
+                <Button
+                  onClick={() => jumpToSection(1)}
+                  size="lg"
+                  className="btn-kairos-primary rounded-pill px-5"
                 >
-                  KAIROS
-                </h1>
-
-                <div className="hero-subtitle-wrapper mb-4">
-                  <h2 className="hero-subtitle-text">Tu Camino a la Mejora</h2>
-                </div>
-
-                <p className="lead mb-5 hero-description px-lg-5">
-                  Descubre el ecosistema digital que fusiona la{" "}
-                  <span className="highlight-text">
-                    Inteligencia Artificial
-                  </span>{" "}
-                  con el{" "}
-                  <span className="highlight-text">Bienestar Digital</span>,
-                  transformando tu uso pasivo de la tecnología en crecimiento
-                  personal tangible.
-                </p>
-
-                <div className="d-flex justify-content-center gap-4 mt-5 flex-wrap">
-                  <div className="platform-badge android">
-                    <div className="platform-badge-inner">
-                      <i className="bi bi-android2"></i>
-                      <div className="platform-badge-content">
-                        <div className="badge-title">App Nativa</div>
-                        <div className="badge-subtitle">Android</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="platform-badge web">
-                    <div className="platform-badge-inner">
-                      <i className="bi bi-globe"></i>
-                      <div className="platform-badge-content">
-                        <div className="badge-title">Portal Web</div>
-                        <div className="badge-subtitle">PWA</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="scroll-indicator mt-5">
-                  <div className="scroll-indicator-line"></div>
-                  <i className="bi bi-chevron-down"></i>
-                </div>
+                  Explorar Ahora
+                </Button>
               </div>
             </Col>
           </Row>
         </Container>
       </section>
 
-      {/* Sección 2: Idea Central Renovada */}
+      {/* ==========================================
+          SECCIÓN 2: PROMOCIONES (SLIDER DE 3)
+          ========================================== */}
       <section
-        className="purpose-section py-5 bg-white"
-        aria-labelledby="central-idea"
+        ref={section2Ref}
+        className="full-screen-section position-relative"
+        // CAMBIO: Fondo claro (#f8f9fa) y min-height
+        style={{
+          minHeight: "100vh",
+          height: "auto",
+          padding: "100px 0",
+          backgroundColor: "#f8f9fa",
+        }}
       >
-        <Container className="py-5">
-          <Row className="align-items-center gy-5">
-            <Col lg={6} className="order-2 order-lg-1">
-              <div className="content-wrapper">
-                <span className="section-label">
-                  <i className="bi bi-lightbulb-fill me-2"></i>
-                  Idea Central
-                </span>
+        <div className="bg-decor-circle"></div>
+        <Container className="position-relative z-1">
+          <div className="text-center mb-5">
+            <span className="section-label">Ahorra y Disfruta</span>
+            <h2 className="display-5 fw-bold text-dark mt-3">
+              Promociones Destacadas
+            </h2>
+          </div>
 
-                <h2
-                  id="central-idea"
-                  className="display-4 fw-bold text-dark mt-4 mb-4"
+          {promocionesSlides.length > 0 ? (
+            <div className="slider-container">
+              {/* Botón Anterior Promo */}
+              <button
+                className="nav-arrow left"
+                onClick={prevPromoSlide}
+                disabled={promocionesSlides.length <= 1}
+              >
+                <ChevronLeft size={24} />
+              </button>
+
+              <div className="slider-track-wrapper">
+                <div
+                  className="slider-track"
+                  style={{
+                    transform: `translateX(-${currentPromoSlide * 100}%)`,
+                  }}
                 >
-                  Red Inteligente para la Mejora Personal
+                  {promocionesSlides.map((group, idx) => (
+                    <div key={idx} className="slider-slide">
+                      <Row className="g-4 w-100 m-0">
+                        {group.map((promo) => (
+                          <Col key={promo.idPromocion} md={6} lg={4}>
+                            <div className="compact-card h-100 flex-column align-items-stretch p-0 overflow-hidden shadow-sm hover-lift bg-white">
+                              <div
+                                className="position-relative"
+                                style={{ height: "320px", overflow: "hidden" }}
+                              >
+                                <img
+                                  src={getImageUrl(
+                                    promo.imagen ||
+                                      promo.idLugarNavigation?.imagen
+                                  )}
+                                  alt={promo.titulo}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src =
+                                      "https://via.placeholder.com/800x600?text=Sin+Imagen";
+                                  }}
+                                />
+                                <div className="position-absolute top-0 end-0 m-3 badge bg-white text-success shadow-sm fw-bold">
+                                  Promo
+                                </div>
+                              </div>
+                              <div className="p-4 d-flex flex-column flex-grow-1">
+                                <div className="d-flex justify-content-between text-muted small fw-bold mb-2">
+                                  <span className="text-truncate">
+                                    {promo.idLugarNavigation?.nombre}
+                                  </span>
+                                  <span className="text-danger flex-shrink-0 ms-2">
+                                    Vence: {formatDate(promo.fechaFin)}
+                                  </span>
+                                </div>
+                                <h5 className="fw-bold mb-2">{promo.titulo}</h5>
+                                <p className="text-secondary small mb-4 flex-grow-1">
+                                  {promo.descripcion?.length > 80
+                                    ? promo.descripcion.substring(0, 80) + "..."
+                                    : promo.descripcion}
+                                </p>
+                                <Button className="w-100 rounded-pill btn-outline-custom">
+                                  Reclamar
+                                </Button>
+                              </div>
+                            </div>
+                          </Col>
+                        ))}
+                      </Row>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botón Siguiente Promo */}
+              <button
+                className="nav-arrow right"
+                onClick={nextPromoSlide}
+                disabled={promocionesSlides.length <= 1}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          ) : (
+            <Col className="text-center text-muted py-5">
+              {loading
+                ? "Cargando promociones..."
+                : "No hay promociones vigentes por el momento."}
+            </Col>
+          )}
+        </Container>
+      </section>
+
+      {/* ==========================================
+          SECCIÓN 3: PUNTOS DE INTERÉS (SLIDER)
+          ========================================== */}
+      <section
+        ref={section3Ref}
+        className="full-screen-section position-relative overflow-hidden text-white"
+        style={{ background: "#111" }}
+      >
+        {currentPoiData ? (
+          <>
+            <div
+              key={currentPoiData.idPunto || "poi-bg"}
+              className="poi-bg-image fade-in-img"
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: `url('${getImageUrl(
+                  currentPoiData.idLugarNavigation?.imagen
+                )}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: 0.6,
+                transition: "background-image 0.5s ease-in-out",
+                zIndex: 0,
+              }}
+            ></div>
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(to top, #000 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.6) 100%)",
+                zIndex: 1,
+              }}
+            ></div>
+
+            <Container
+              className="position-relative h-100 d-flex align-items-center justify-content-center"
+              style={{ zIndex: 10, paddingBottom: "120px" }}
+            >
+              <div className="text-center poi-content-wrapper">
+                <div className="mb-3 animate-up delay-1">
+                  <span className="poi-tag-badge">
+                    {currentPoiData.etiqueta || "Tendencia"}
+                  </span>
+                </div>
+
+                <h2 className="display-2 fw-bold mb-2 animate-up delay-2">
+                  {currentPoiData.idLugarNavigation?.nombre ||
+                    "Lugar Increíble"}
                 </h2>
 
-                <p className="text-secondary lead mb-4 description-text">
-                  KAIROS es tu{" "}
-                  <span className="text-gradient fw-bold">Coach Proactivo</span>{" "}
-                  que sugiere acciones en el mundo real, promoviendo la
-                  exploración consciente y el bienestar digital.
+                <div className="d-flex align-items-center justify-content-center gap-2 mb-4 text-white-50 animate-up delay-3">
+                  <MapPin size={20} className="text-warning" />
+                  <span className="fs-5">
+                    {currentPoiData.idLugarNavigation?.direccion ||
+                      "León, Guanajuato"}
+                  </span>
+                </div>
+
+                <p
+                  className="lead mx-auto mb-5 text-light opacity-75 animate-up delay-4"
+                  style={{ maxWidth: "700px" }}
+                >
+                  {currentPoiData.idLugarNavigation?.descripcion
+                    ? currentPoiData.idLugarNavigation.descripcion.substring(
+                        0,
+                        150
+                      ) + "..."
+                    : "Descubre este maravilloso lugar en tu próxima visita."}
                 </p>
-
-                <div className="feature-highlight-box p-4 mb-4">
-                  <div className="highlight-header mb-4">
-                    <i className="bi bi-diagram-3-fill text-success fs-2"></i>
-                    <h3 className="h4 fw-bold mt-2 mb-0">
-                      Dos Plataformas, un Ecosistema
-                    </h3>
-                  </div>
-
-                  <div className="platform-list">
-                    <div className="platform-item mb-3">
-                      <div className="platform-icon android-gradient">
-                        <i className="bi bi-phone-fill"></i>
-                      </div>
-                      <div className="platform-content">
-                        <h4 className="h6 fw-bold mb-2">
-                          Aplicación Nativa Android
-                        </h4>
-                        <p className="small text-secondary mb-0">
-                          Motor de experiencia que maneja descubrimiento, rutas,
-                          coaching con IA y seguridad.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="platform-item">
-                      <div className="platform-icon web-gradient">
-                        <i className="bi bi-laptop-fill"></i>
-                      </div>
-                      <div className="platform-content">
-                        <h4 className="h6 fw-bold mb-2">PWA/Portal Web</h4>
-                        <p className="small text-secondary mb-0">
-                          Centro de administración enfocado en gestión de
-                          contenidos, monetización y promoción.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </Col>
 
-            <Col lg={6} className="order-1 order-lg-2">
-              <div className="ecosystem-visual">
-                <div className="visual-container">
-                  <div className="phone-mockup">
-                    <div className="phone-notch"></div>
-                    <div className="phone-screen">
-                      <div className="screen-content">
-                        <div className="app-icon-wrapper">
-                          <i className="bi bi-compass-fill app-icon"></i>
-                        </div>
-                        <h3 className="text-white fw-bold mt-3 mb-1">KAIROS</h3>
-                        <p className="text-white-50 small mb-0">
-                          Explora & Crece
-                        </p>
-                        <div className="screen-indicators mt-4">
-                          <div className="indicator active"></div>
-                          <div className="indicator"></div>
-                          <div className="indicator"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <button
+                className="poi-nav-arrow left"
+                onClick={prevPoi}
+                aria-label="Anterior lugar"
+              >
+                <ChevronLeft size={32} />
+              </button>
 
-                  <div className="connection-line">
-                    <div className="connection-segment"></div>
-                    <div className="connection-dot dot-pulse"></div>
-                    <div className="connection-segment"></div>
-                  </div>
+              <button
+                className="poi-nav-arrow right"
+                onClick={nextPoi}
+                aria-label="Siguiente lugar"
+              >
+                <ChevronRight size={32} />
+              </button>
 
-                  <div className="web-mockup">
-                    <div className="web-browser-bar">
-                      <div className="browser-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                      <div className="browser-url">kairos-admin.com</div>
-                    </div>
-                    <div className="web-content">
-                      <div className="web-icon-wrapper">
-                        <i className="bi bi-grid-3x3-gap-fill web-icon"></i>
-                      </div>
-                      <h4 className="fw-bold mt-3 mb-1">Admin Portal</h4>
-                      <p className="text-secondary small mb-0">
-                        Gestión & Analytics
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="poi-dots-container">
+                {pois.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`poi-dot ${
+                      currentPoiIndex === idx ? "active" : ""
+                    }`}
+                    onClick={() => setCurrentPoiIndex(idx)}
+                  ></div>
+                ))}
               </div>
-            </Col>
-          </Row>
-        </Container>
+            </Container>
+          </>
+        ) : (
+          <Container className="text-center position-relative z-3">
+            <h3 className="text-white">
+              {loading
+                ? "Cargando experiencias..."
+                : "Explora los mejores lugares."}
+            </h3>
+          </Container>
+        )}
       </section>
 
-      {/* Sección 3: Arquitectura Moderna */}
+      {/* ==========================================
+          SECCIÓN 4: DIRECTORIO
+          ========================================== */}
       <section
-        className="architecture-section py-5 bg-gradient-soft"
-        aria-labelledby="architecture-title"
+        ref={section4Ref}
+        className="full-screen-section position-relative"
+        // CAMBIO: Fondo claro (#f8f9fa)
+        style={{ backgroundColor: "#f8f9fa" }}
       >
-        <Container className="py-5">
+        <div
+          className="cta-background"
+          style={{ opacity: 0.05, background: "#000" }}
+        ></div>
+        <Container className="position-relative z-2">
           <div className="text-center mb-5">
-            <span className="section-label">
-              <i className="bi bi-cpu-fill me-2"></i>
-              Arquitectura
-            </span>
-            <h2
-              id="architecture-title"
-              className="display-4 fw-bold text-dark mt-4 mb-3"
-            >
-              Microservicios Desacoplados
-            </h2>
-            <p
-              className="text-secondary lead mx-auto"
-              style={{ maxWidth: "700px" }}
-            >
-              Arquitectura moderna que garantiza{" "}
-              <strong className="text-gradient">Escalabilidad</strong>,{" "}
-              <strong className="text-gradient">Flexibilidad</strong> y{" "}
-              <strong className="text-gradient">Resiliencia</strong>
+            <br />
+            <br />
+            <br />
+            <br />
+            <h2 className="display-5 fw-bold text-dark">Directorio Local</h2>
+            <p className="text-secondary lead">
+              Explora todo lo que la ciudad tiene para ofrecer
             </p>
           </div>
 
-          <Row className="g-4">
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-ai">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-cpu"></i>
-                  </div>
-                  <h3 className="card-title">Motor de IA y Rutas</h3>
-                  <p className="card-description">
-                    Procesamiento intensivo con ML (Python/TensorFlow) para
-                    rutas optimizadas y coaching proactivo.
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-lightning-charge-fill"></i>
-                    <span>Alta Performance</span>
-                  </div>
-                </div>
-              </div>
-            </Col>
+          {lugaresSlides.length > 0 ? (
+            <div className="slider-container">
+              <button
+                className="nav-arrow left"
+                onClick={prevSlide}
+                disabled={lugaresSlides.length <= 1}
+              >
+                <ChevronLeft size={24} />
+              </button>
 
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-monetization">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-currency-dollar"></i>
-                  </div>
-                  <h3 className="card-title">Monetización y BI</h3>
-                  <p className="card-description">
-                    Eventos de conversión y dashboard con métricas clave.
-                    Operación independiente sin afectar funcionalidad central.
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-graph-up-arrow"></i>
-                    <span>Analytics</span>
-                  </div>
+              <div className="slider-track-wrapper">
+                <div
+                  className="slider-track"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                  {lugaresSlides.map((group, gIdx) => (
+                    <div key={gIdx} className="slider-slide">
+                      {group.map((lugar) => (
+                        <div
+                          key={lugar.idLugar}
+                          className="place-row-card shadow-sm bg-white"
+                        >
+                          <div className="place-img">
+                            <img
+                              src={getImageUrl(lugar.imagen)}
+                              alt={lugar.nombre}
+                            />
+                            <span className="place-cat">
+                              {lugar.idCategoriaNavigation?.nombre}
+                            </span>
+                          </div>
+                          <div className="place-info">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <h3 className="fw-bold mb-0 text-dark">
+                                {lugar.nombre}
+                              </h3>
+                              <div className="d-flex align-items-center bg-light px-2 py-1 rounded-pill">
+                                <Star
+                                  size={16}
+                                  className="text-warning"
+                                  fill="currentColor"
+                                />
+                                <span className="ms-1 fw-bold text-dark small">
+                                  4.8
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-muted mb-3 d-flex align-items-center">
+                              <MapPin size={16} className="me-2 text-danger" />{" "}
+                              {lugar.direccion}
+                            </p>
+                            <p className="text-secondary text-truncate-3 flex-grow-1 mb-4">
+                              {lugar.descripcion}
+                            </p>
+                            <div className="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                              {lugar.estatus ? (
+                                <span className="text-success fw-bold small d-flex align-items-center">
+                                  <CheckCircle size={16} className="me-2" />{" "}
+                                  Abierto
+                                </span>
+                              ) : (
+                                <span className="text-danger fw-bold small d-flex align-items-center">
+                                  <XCircle size={16} className="me-2" /> Cerrado
+                                </span>
+                              )}
+                              <button className="btn-icon-circle">
+                                <ChevronRight size={20} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </Col>
 
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-auth">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-shield-lock-fill"></i>
-                  </div>
-                  <h3 className="card-title">Autenticación</h3>
-                  <p className="card-description">
-                    Gestión segura de usuarios y administradores con Control de
-                    Acceso basado en Roles (RBAC).
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-check-circle-fill"></i>
-                    <span>Seguridad</span>
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-content">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-geo-alt-fill"></i>
-                  </div>
-                  <h3 className="card-title">Servicio de Contenido</h3>
-                  <p className="card-description">
-                    CRUD para lugares (POIs), categorías y metadatos. Alimenta
-                    mapas interactivos y motor de rutas.
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-database-fill"></i>
-                    <span>Data Layer</span>
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-gateway">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-router-fill"></i>
-                  </div>
-                  <h3 className="card-title">API Gateway</h3>
-                  <p className="card-description">
-                    Punto único de entrada. Enrutamiento eficiente a
-                    microservicios aislando lógica interna.
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-diagram-3-fill"></i>
-                    <span>Orchestration</span>
-                  </div>
-                </div>
-              </div>
-            </Col>
-
-            <Col md={6} lg={4}>
-              <div className="architecture-card card-infra">
-                <div className="card-gradient-bg"></div>
-                <div className="card-inner">
-                  <div className="card-icon-wrapper">
-                    <i className="bi bi-server"></i>
-                  </div>
-                  <h3 className="card-title">Infraestructura</h3>
-                  <p className="card-description">
-                    Cloud-native con contenedores, balanceadores y auto-scaling
-                    para máxima disponibilidad.
-                  </p>
-                  <div className="card-badge">
-                    <i className="bi bi-cloud-fill"></i>
-                    <span>Cloud Ready</span>
-                  </div>
-                </div>
-              </div>
-            </Col>
-          </Row>
+              <button
+                className="nav-arrow right"
+                onClick={nextSlide}
+                disabled={lugaresSlides.length <= 1}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-5">
+              {loading
+                ? "Cargando directorio..."
+                : "No hay lugares disponibles."}
+            </div>
+          )}
         </Container>
       </section>
 
-      {/* Sección 4: Seguridad y Fiabilidad */}
-      <section
-        className="security-section py-5 bg-white"
-        aria-labelledby="security-title"
-      >
-        <Container className="py-5">
-          <div className="text-center mb-5">
-            <span className="section-label">
-              <i className="bi bi-shield-check me-2"></i>
-              Confianza y Resiliencia
-            </span>
-            <h2
-              id="security-title"
-              className="display-4 fw-bold text-dark mt-4 mb-3"
-            >
-              Seguridad y Fiabilidad Primero
-            </h2>
-            <p
-              className="text-secondary lead mx-auto"
-              style={{ maxWidth: "650px" }}
-            >
-              Requerimientos no funcionales que garantizan calidad y estabilidad
-            </p>
-          </div>
+      {/* ==========================================
+          NAVEGACIÓN LATERAL
+          ========================================== */}
+      <div className="nav-dock-minimal">
+        <button
+          className="nav-btn-mini"
+          onClick={() => scrollToSection("up")}
+          disabled={currentIndex === 0}
+        >
+          <ChevronUp size={16} />
+        </button>
 
-          <Row className="g-4">
-            <Col md={4}>
-              <div className="security-card">
-                <div className="security-icon-large icon-security">
-                  <i className="bi bi-shield-lock-fill"></i>
-                  <div className="icon-ripple"></div>
-                </div>
-                <h3 className="h3 fw-bold mb-3 text-center">
-                  Control de Acceso
-                </h3>
-                <p className="text-secondary text-center mb-4">
-                  <strong>RBAC</strong> (Role-Based Access Control) para
-                  restringir acceso a funcionalidades sensibles.
-                </p>
-                <div className="security-stats">
-                  <i className="bi bi-check-circle-fill text-success"></i>
-                  <span>Multi-nivel de permisos</span>
-                </div>
-              </div>
-            </Col>
-
-            <Col md={4}>
-              <div className="security-card">
-                <div className="security-icon-large icon-performance">
-                  <i className="bi bi-speedometer2"></i>
-                  <div className="icon-ripple"></div>
-                </div>
-                <h3 className="h3 fw-bold mb-3 text-center">
-                  Rendimiento Crítico
-                </h3>
-                <p className="text-secondary text-center mb-4">
-                  Transacciones críticas con tiempo de respuesta
-                  <strong> &lt; 1 segundo</strong> garantizado.
-                </p>
-                <div className="security-stats">
-                  <i className="bi bi-lightning-charge-fill text-warning"></i>
-                  <span>Ultra-rápido</span>
-                </div>
-              </div>
-            </Col>
-
-            <Col md={4}>
-              <div className="security-card">
-                <div className="security-icon-large icon-offline">
-                  <i className="bi bi-wifi-off"></i>
-                  <div className="icon-ripple"></div>
-                </div>
-                <h3 className="h3 fw-bold mb-3 text-center">Modo Offline</h3>
-                <p className="text-secondary text-center mb-4">
-                  Persistencia de datos para acceso sin conexión a información
-                  vital de rutas y lugares.
-                </p>
-                <div className="security-stats">
-                  <i className="bi bi-cloud-arrow-down-fill text-info"></i>
-                  <span>Siempre disponible</span>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
-
-      {/* Sección 5: CTA Final Renovado */}
-      <section className="cta-final-section position-relative overflow-hidden">
-        <div className="cta-background"></div>
-        <div className="cta-mesh-gradient"></div>
-
-        <Container className="py-5 position-relative" style={{ zIndex: 10 }}>
-          <Row className="justify-content-center text-center py-5">
-            <Col lg={9} xl={8}>
-              <div className="cta-icon-container mb-4">
-                <div className="cta-icon-orbit orbit-1"></div>
-                <div className="cta-icon-orbit orbit-2"></div>
-                <div className="cta-icon-orbit orbit-3"></div>
-                <div className="cta-icon-large">
-                  <i className="bi bi-rocket-takeoff-fill"></i>
-                </div>
-              </div>
-
-              <h2 className="display-3 fw-bold text-white mb-4">
-                ¿Listo para Transformar tu Experiencia Digital?
-              </h2>
-              <p className="lead text-white-50 mb-5 px-lg-5">
-                Únete a KAIROS y descubre cómo la IA puede mejorar tu día a día
-              </p>
-
-              <div className="d-flex gap-3 justify-content-center flex-wrap">
-                <NavLink to="/contacto" className="btn-cta-primary">
-                  <i className="bi bi-envelope-fill me-2"></i>
-                  Contáctanos
-                  <i className="bi bi-arrow-right ms-2"></i>
-                </NavLink>
-                <NavLink to="/demo" className="btn-cta-secondary">
-                  <i className="bi bi-play-circle-fill me-2"></i>
-                  Ver Demo
-                </NavLink>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-
-        <div className="floating-icons">
-          <div className="floating-icon icon-1">
-            <i className="bi bi-stars"></i>
-          </div>
-          <div className="floating-icon icon-2">
-            <i className="bi bi-compass"></i>
-          </div>
-          <div className="floating-icon icon-3">
-            <i className="bi bi-lightbulb"></i>
-          </div>
-          <div className="floating-icon icon-4">
-            <i className="bi bi-heart-fill"></i>
-          </div>
+        <div className="nav-indicators-mini">
+          {sections.map((_, idx) => (
+            <div
+              key={idx}
+              className={`nav-dot-mini ${currentIndex === idx ? "active" : ""}`}
+              onClick={() => jumpToSection(idx)}
+            ></div>
+          ))}
         </div>
-      </section>
 
-      {/* Estilos CSS Mejorados */}
+        <button
+          className="nav-btn-mini"
+          onClick={() => scrollToSection("down")}
+          disabled={currentIndex === sections.length - 1}
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
+
+      {/* Modal Intereses */}
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        centered
+        contentClassName="border-0 shadow-lg rounded-4"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title>Personaliza tu Kairos</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-muted">Selecciona tus intereses...</p>
+        </Modal.Body>
+      </Modal>
+
+      {/* ==========================================
+          ESTILOS CSS
+          ========================================== */}
       <style>{`
-        /* === Variables Globales === */
         :root {
           --color-primary: #1e4d2b;
           --color-secondary: #2d7a3e;
           --color-accent: #3d9651;
-          --color-light-green: #90ee90;
-          --color-teal: #5f9ea0;
-          --color-sage: #8fbc8f;
-          --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        /* === Hero Section Mejorado === */
-        .exploration-hero-section {
-          background: linear-gradient(135deg, #0a1f0f 0%, #1e4d2b 50%, #2d7a3e 100%);
-          position: relative;
-          overflow: hidden;
+        .full-screen-section {
           min-height: 100vh;
-        }
-
-        .hero-overlay {
-          position: absolute;
-          inset: 0;
-          background: 
-            radial-gradient(circle at 20% 30%, rgba(144, 238, 144, 0.1) 0%, transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(61, 150, 81, 0.15) 0%, transparent 50%),
-            linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
-          z-index: 1;
-        }
-
-        .hero-particles {
-          position: absolute;
-          inset: 0;
-          z-index: 2;
-        }
-
-        .particle {
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          background: var(--color-light-green);
-          border-radius: 50%;
-          box-shadow: 0 0 20px var(--color-light-green);
-          animation: particleFloat 25s infinite ease-in-out;
-        }
-
-        .particle-1 { top: 10%; left: 10%; animation-delay: 0s; }
-        .particle-2 { top: 70%; right: 15%; animation-delay: 5s; width: 8px; height: 8px; }
-        .particle-3 { bottom: 20%; left: 25%; animation-delay: 10s; }
-        .particle-4 { top: 40%; right: 30%; animation-delay: 15s; width: 5px; height: 5px; }
-        .particle-5 { bottom: 40%; right: 10%; animation-delay: 20s; }
-
-        @keyframes particleFloat {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
-          10% { opacity: 1; }
-          50% { transform: translate(150px, -150px) scale(1.8); opacity: 0.8; }
-          90% { opacity: 0.3; }
-        }
-
-        .min-vh-100 {
-          min-height: 100vh;
-        }
-
-        .hero-content-wrapper {
-          animation: heroFadeIn 1.4s var(--transition-smooth);
-        }
-
-        @keyframes heroFadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.85rem 1.75rem;
-          background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(20px);
-          border: 2px solid rgba(144, 238, 144, 0.3);
-          border-radius: 50px;
-          color: var(--color-light-green);
-          font-weight: 700;
-          font-size: 0.95rem;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-          transition: all 0.4s var(--transition-smooth);
-        }
-
-        .hero-badge:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: var(--color-light-green);
-          transform: translateY(-3px);
-          box-shadow: 0 12px 40px rgba(144, 238, 144, 0.3);
-        }
-
-        .hero-title {
-          font-size: 7rem;
-          font-weight: 900;
-          letter-spacing: -3px;
-          text-shadow: 
-            0 5px 20px rgba(0, 0, 0, 0.5),
-            0 0 60px rgba(144, 238, 144, 0.3);
-          color: #ffffff;
-          line-height: 1;
-          margin-bottom: 2rem;
-        }
-
-        .hero-subtitle-wrapper {
-          position: relative;
-          display: inline-block;
-        }
-
-        .hero-subtitle-text {
-          font-size: 2.5rem;
-          font-weight: 300;
-          color: var(--color-light-green);
-          letter-spacing: 2px;
-          text-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
-        }
-
-        .hero-description {
-          font-size: 1.35rem;
-          font-weight: 300;
-          line-height: 1.9;
-          color: rgba(255, 255, 255, 0.9);
-          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .highlight-text {
-          color: var(--color-light-green);
-          font-weight: 700;
-          text-shadow: 0 0 30px rgba(144, 238, 144, 0.6);
-          position: relative;
-        }
-
-        .platform-badge {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(15px);
-          border: 2px solid rgba(255, 255, 255, 0.15);
-          border-radius: 24px;
-          padding: 0.5rem;
-          transition: all 0.5s var(--transition-smooth);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .platform-badge::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-          transform: translateX(-100%);
-          transition: transform 0.6s ease;
-        }
-
-        .platform-badge:hover::before {
-          transform: translateX(100%);
-        }
-
-        .platform-badge:hover {
-          transform: translateY(-8px);
-          background: rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.3);
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        }
-
-        .platform-badge-inner {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          padding: 1rem 1.5rem;
-        }
-
-        .platform-badge i {
-          font-size: 3rem;
-          transition: transform 0.4s var(--transition-smooth);
-        }
-
-        .platform-badge:hover i {
-          transform: scale(1.2) rotate(5deg);
-        }
-
-        .platform-badge.android i {
-          color: var(--color-light-green);
-          filter: drop-shadow(0 0 20px var(--color-light-green));
-        }
-
-        .platform-badge.web i {
-          color: var(--color-teal);
-          filter: drop-shadow(0 0 20px var(--color-teal));
-        }
-
-        .platform-badge-content {
-          text-align: left;
-        }
-
-        .badge-title {
-          font-size: 1.2rem;
-          font-weight: 700;
-          color: white;
-          line-height: 1.2;
-          margin-bottom: 0.25rem;
-        }
-
-        .badge-subtitle {
-          font-size: 0.9rem;
-          color: rgba(255, 255, 255, 0.7);
-          font-weight: 500;
-        }
-
-        .scroll-indicator {
-          position: relative;
-          display: inline-block;
-        }
-
-        .scroll-indicator-line {
-          width: 2px;
-          height: 50px;
-          background: linear-gradient(180deg, transparent, var(--color-light-green));
-          margin: 0 auto 1rem;
-          animation: scrollLine 2s ease-in-out infinite;
-        }
-
-        @keyframes scrollLine {
-          0%, 100% { opacity: 0.3; transform: scaleY(0.5); }
-          50% { opacity: 1; transform: scaleY(1); }
-        }
-
-        .scroll-indicator i {
-          font-size: 2.5rem;
-          color: var(--color-light-green);
-          animation: scrollBounce 2s ease-in-out infinite;
-          display: block;
-        }
-
-        @keyframes scrollBounce {
-          0%, 100% { transform: translateY(0); opacity: 0.5; }
-          50% { transform: translateY(15px); opacity: 1; }
-        }
-
-        /* === Section Labels === */
-        .section-label {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.75rem 1.75rem;
-          background: linear-gradient(135deg, rgba(144, 238, 144, 0.1), rgba(45, 122, 62, 0.1));
-          border: 2px solid var(--color-secondary);
-          border-radius: 50px;
-          color: var(--color-primary);
-          font-size: 0.9rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          box-shadow: 0 4px 15px rgba(45, 122, 62, 0.1);
-        }
-
-        .bg-gradient-soft {
-          background: linear-gradient(180deg, #f7fcf7 0%, #ffffff 50%, #f7fcf7 100%);
-        }
-
-        .text-gradient {
-          background: linear-gradient(135deg, var(--color-primary), var(--color-secondary), var(--color-accent));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        /* === Purpose Section === */
-        .purpose-section {
-          position: relative;
-        }
-
-        .content-wrapper {
-          animation: slideInLeft 0.8s var(--transition-smooth);
-        }
-
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(-40px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-
-        .description-text {
-          font-size: 1.15rem;
-          line-height: 1.8;
-        }
-
-        .feature-highlight-box {
-          background: linear-gradient(135deg, #f7fcf7 0%, #ffffff 100%);
-          border-left: 5px solid var(--color-secondary);
-          border-radius: 20px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
-          transition: all 0.4s var(--transition-smooth);
-        }
-
-        .feature-highlight-box:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 15px 50px rgba(45, 122, 62, 0.15);
-        }
-
-        .highlight-header {
-          text-align: center;
-        }
-
-        .platform-list {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
-        }
-
-        .platform-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 1.25rem;
-          padding: 1.25rem;
-          background: white;
-          border-radius: 16px;
-          border: 2px solid transparent;
-          transition: all 0.4s var(--transition-smooth);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-        }
-
-        .platform-item:hover {
-          transform: translateX(12px);
-          border-color: var(--color-secondary);
-          box-shadow: 0 8px 30px rgba(45, 122, 62, 0.15);
-        }
-
-        .platform-icon {
-          width: 56px;
-          height: 56px;
-          display: flex;
-          align-items: center;
           justify-content: center;
-          border-radius: 14px;
-          font-size: 1.6rem;
-          flex-shrink: 0;
-          color: white;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .android-gradient {
-          background: linear-gradient(135deg, #90ee90 0%, #4a7c59 100%);
-        }
-
-        .web-gradient {
-          background: linear-gradient(135deg, #5f9ea0 0%, #8fbc8f 100%);
-        }
-
-        .platform-content {
-          flex: 1;
-        }
-
-        /* === Ecosystem Visual Mejorado === */
-        .ecosystem-visual {
-          padding: 3rem 2rem;
-          animation: slideInRight 0.8s var(--transition-smooth);
-        }
-
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(40px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-
-        .visual-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 2.5rem;
-          flex-wrap: wrap;
-          perspective: 1200px;
-        }
-
-        .phone-mockup {
-          width: 260px;
-          height: 520px;
-          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
-          border-radius: 40px;
-          padding: 14px;
-          box-shadow: 
-            0 30px 80px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-          position: relative;
-          animation: floatPhone 7s ease-in-out infinite;
-        }
-
-        @keyframes floatPhone {
-          0%, 100% { transform: translateY(0) rotateY(-5deg); }
-          50% { transform: translateY(-25px) rotateY(5deg); }
-        }
-
-        .phone-notch {
-          position: absolute;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 110px;
-          height: 28px;
-          background: #000;
-          border-radius: 0 0 18px 18px;
-          z-index: 10;
-        }
-
-        .phone-screen {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
-          border-radius: 32px;
-          overflow: hidden;
-          position: relative;
-          box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .screen-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          padding: 2.5rem;
-        }
-
-        .app-icon-wrapper {
-          width: 100px;
-          height: 100px;
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          border-radius: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          animation: iconPulse 3s ease-in-out infinite;
-        }
-
-        @keyframes iconPulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(144, 238, 144, 0.3); }
-          50% { transform: scale(1.1); box-shadow: 0 0 40px rgba(144, 238, 144, 0.6); }
-        }
-
-        .app-icon {
-          font-size: 4rem;
-          color: var(--color-light-green);
-        }
-
-        .screen-indicators {
-          display: flex;
-          gap: 0.6rem;
-        }
-
-        .indicator {
-          width: 10px;
-          height: 10px;
-          background: rgba(255, 255, 255, 0.25);
-          border-radius: 50%;
-          transition: all 0.3s ease;
-        }
-
-        .indicator.active {
-          background: white;
-          width: 24px;
-          border-radius: 5px;
-        }
-
-        .connection-line {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-        }
-
-        .connection-segment {
-          width: 40px;
-          height: 3px;
-          background: linear-gradient(90deg, transparent, var(--color-secondary), transparent);
-          border-radius: 2px;
-        }
-
-        .connection-dot {
-          width: 14px;
-          height: 14px;
-          background: var(--color-secondary);
-          border-radius: 50%;
-          box-shadow: 0 0 20px var(--color-secondary);
-          animation: dotPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes dotPulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.4); opacity: 1; }
-        }
-
-        .web-mockup {
-          width: 300px;
-          height: 220px;
-          background: white;
-          border-radius: 24px;
-          box-shadow: 
-            0 25px 70px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(0, 0, 0, 0.05);
-          overflow: hidden;
-          animation: floatWeb 7s ease-in-out infinite;
-          animation-delay: 0.5s;
-        }
-
-        @keyframes floatWeb {
-          0%, 100% { transform: translateY(0) rotateY(5deg); }
-          50% { transform: translateY(-20px) rotateY(-5deg); }
-        }
-
-        .web-browser-bar {
-          background: linear-gradient(180deg, #f8f8f8 0%, #ececec 100%);
-          padding: 0.9rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          border-bottom: 1px solid #ddd;
-        }
-
-        .browser-dots {
-          display: flex;
-          gap: 0.45rem;
-        }
-
-        .browser-dots span {
-          width: 11px;
-          height: 11px;
-          border-radius: 50%;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .browser-dots span:nth-child(1) { background: #ff5f56; }
-        .browser-dots span:nth-child(2) { background: #ffbd2e; }
-        .browser-dots span:nth-child(3) { background: #27c93f; }
-
-        .browser-url {
-          flex: 1;
-          background: white;
-          padding: 0.4rem 0.8rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          color: #999;
-          border: 1px solid #e0e0e0;
-        }
-
-        .web-content {
-          padding: 2rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: calc(100% - 50px);
-          background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
-        }
-
-        .web-icon-wrapper {
-          width: 70px;
-          height: 70px;
-          background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 8px 25px rgba(45, 122, 62, 0.3);
-        }
-
-        .web-icon {
-          font-size: 2.5rem;
-          color: white;
-        }
-
-        /* === Architecture Cards === */
-        .architecture-card {
-          position: relative;
-          background: white;
-          border-radius: 24px;
           padding: 0;
-          height: 100%;
-          overflow: hidden;
-          border: 1px solid rgba(45, 122, 62, 0.1);
-          transition: all 0.5s var(--transition-smooth);
-        }
-
-        .architecture-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 5px;
-          background: linear-gradient(90deg, var(--color-secondary), var(--color-accent));
-          transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 0.5s var(--transition-smooth);
-        }
-
-        .architecture-card:hover {
-          transform: translateY(-12px);
-          box-shadow: 0 25px 70px rgba(45, 122, 62, 0.25);
-          border-color: var(--color-secondary);
-        }
-
-        .architecture-card:hover::before {
-          transform: scaleX(1);
-        }
-
-        .card-gradient-bg {
-          position: absolute;
-          inset: 0;
-          opacity: 0;
-          transition: opacity 0.5s ease;
-          pointer-events: none;
-        }
-
-        .card-ai .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(144, 238, 144, 0.1) 0%, transparent 70%); }
-        .card-monetization .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(95, 158, 160, 0.1) 0%, transparent 70%); }
-        .card-auth .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(143, 188, 143, 0.1) 0%, transparent 70%); }
-        .card-content .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(178, 223, 219, 0.1) 0%, transparent 70%); }
-        .card-gateway .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(0, 105, 148, 0.1) 0%, transparent 70%); }
-        .card-infra .card-gradient-bg { background: radial-gradient(circle at 50% 0%, rgba(155, 89, 182, 0.1) 0%, transparent 70%); }
-
-        .architecture-card:hover .card-gradient-bg {
-          opacity: 1;
-        }
-
-        .card-inner {
           position: relative;
-          z-index: 2;
-          padding: 2.5rem 2rem;
-          text-align: center;
+        }
+        .hover-lift {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
         }
 
-        .card-icon-wrapper {
-          width: 90px;
-          height: 90px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 22px;
-          font-size: 2.8rem;
-          margin: 0 auto 1.75rem;
-          transition: all 0.5s var(--transition-smooth);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        /* === NAV DOCK MINIMALISTA === */
+        .nav-dock-minimal {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            padding: 5px;
+        }
+        
+        .nav-btn-mini {
+            background: rgba(0,0,0,0.5);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn-mini:hover:not(:disabled) { background: var(--color-primary); }
+        .nav-btn-mini:disabled { opacity: 0; pointer-events: none; }
+
+        .nav-indicators-mini { display: flex; flex-direction: column; gap: 8px; margin: 5px 0; }
+        .nav-dot-mini {
+            width: 8px; height: 8px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 50%; cursor: pointer; transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .nav-dot-mini.active {
+            background-color: var(--color-primary);
+            transform: scale(1.4);
+            border-color: var(--color-primary);
         }
 
-        .architecture-card:hover .card-icon-wrapper {
-          transform: scale(1.15) rotate(8deg);
+        /* === ESTILOS POI SLIDER === */
+        .poi-content-wrapper { position: relative; z-index: 20; }
+        
+        .poi-tag-badge {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
         }
 
-        .card-ai .card-icon-wrapper { background: linear-gradient(135deg, #90ee90, #4a7c59); color: white; }
-        .card-monetization .card-icon-wrapper { background: linear-gradient(135deg, #5f9ea0, #8fbc8f); color: white; }
-        .card-auth .card-icon-wrapper { background: linear-gradient(135deg, #8fbc8f, #2d5016); color: white; }
-        .card-content .card-icon-wrapper { background: linear-gradient(135deg, #b2dfdb, #4a7c59); color: white; }
-        .card-gateway .card-icon-wrapper { background: linear-gradient(135deg, #006994, #5f9ea0); color: white; }
-        .card-infra .card-icon-wrapper { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; }
-
-        .card-title {
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: var(--color-primary);
-          margin-bottom: 1.25rem;
-          line-height: 1.3;
+        .poi-nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 30;
         }
-
-        .card-description {
-          color: #666;
-          line-height: 1.8;
-          margin-bottom: 1.75rem;
-          font-size: 0.95rem;
+        .poi-nav-arrow:hover {
+            background: white; color: black; border-color: white;
         }
+        .poi-nav-arrow.left { left: 40px; }
+        .poi-nav-arrow.right { right: 40px; }
 
-        .card-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.6rem 1.25rem;
-          background: rgba(45, 122, 62, 0.08);
-          border-radius: 50px;
-          color: var(--color-secondary);
-          font-size: 0.85rem;
-          font-weight: 700;
-          transition: all 0.3s ease;
+        /* === DOTS AJUSTADOS === */
+        .poi-dots-container {
+            position: absolute;
+            bottom: 20px; /* Se mantienen bien abajo */
+            left: 50%;
+            transform: translateX(-50%); /* Centrado horizontal */
+            display: flex;
+            gap: 10px;
+            z-index: 30;
         }
-
-        .architecture-card:hover .card-badge {
-          background: rgba(45, 122, 62, 0.15);
-          transform: scale(1.05);
+        .poi-dot {
+            width: 12px; height: 12px; background: rgba(255,255,255,0.3);
+            border-radius: 50%; cursor: pointer; transition: 0.3s;
         }
+        .poi-dot.active { background: white; transform: scale(1.2); }
 
-        /* === Security Section === */
-        .security-card {
-          text-align: center;
-          padding: 2.5rem 2rem;
-          background: linear-gradient(135deg, #ffffff 0%, #f7fcf7 100%);
-          border-radius: 24px;
-          border: 2px solid rgba(45, 122, 62, 0.08);
-          transition: all 0.5s var(--transition-smooth);
-          height: 100%;
-          position: relative;
-          overflow: hidden;
+        /* Animaciones */
+        .fade-in-img { animation: fadeIn 0.8s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 0.6; } }
+
+        .animate-up { animation: fadeInUp 0.8s ease forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+
+        /* Otros estilos */
+        .custom-glass-badge {
+             background: rgba(255, 255, 255, 0.15);
+             color: #ffffff;
+             border: 1px solid rgba(255, 255, 255, 0.3);
+             font-size: 0.9rem; fontWeight: 600;
+             display: inline-flex; alignItems: center; gap: 8px;
+             backdrop-filter: blur(10px);
         }
-
-        .security-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 50% 0%, rgba(144, 238, 144, 0.05) 0%, transparent 60%);
-          opacity: 0;
-          transition: opacity 0.5s ease;
+        .text-gradient-green {
+             background: linear-gradient(90deg, #fff, #90ee90);
+             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-
-        .security-card:hover {
-          transform: translateY(-12px);
-          box-shadow: 0 20px 60px rgba(45, 122, 62, 0.2);
-          border-color: var(--color-secondary);
+        .btn-kairos-primary {
+             background-color: var(--color-primary); color: white; font-weight: 600; border: none;
+             transition: 0.3s;
         }
-
-        .security-card:hover::before {
-          opacity: 1;
+        .btn-kairos-primary:hover {
+             background-color: var(--color-accent); transform: translateY(-3px);
+             box-shadow: 0 10px 20px rgba(30, 77, 43, 0.3);
         }
-
-        .security-icon-large {
-          width: 110px;
-          height: 110px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          margin: 0 auto 2rem;
-          font-size: 3.5rem;
-          position: relative;
-          transition: all 0.6s var(--transition-smooth);
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        .bg-decor-circle {
+             position: absolute; width: 800px; height: 800px;
+             background: radial-gradient(circle, rgba(144, 238, 144, 0.08) 0%, transparent 70%);
+             top: 50%; transform: translate(-50%, -50%); pointer-events: none;
         }
-
-        .security-card:hover .security-icon-large {
-          transform: scale(1.1) rotate(360deg);
+        
+        /* Directorio */
+        .slider-container { display: flex; align-items: center; gap: 20px; position: relative; padding: 20px 0;}
+        .slider-track-wrapper { overflow: hidden; flex-grow: 1; border-radius: 24px; }
+        .slider-track { display: flex; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1); width: 100%; }
+        .slider-slide { min-width: 100%; display: flex; flex-direction: column; gap: 25px; padding: 5px; }
+        .place-row-card {
+             background: white; border: 1px solid #f0f0f0; border-radius: 24px;
+             display: flex; overflow: hidden; min-height: 240px; transition: 0.3s;
         }
-
-        .icon-ripple {
-          position: absolute;
-          inset: -15px;
-          border-radius: 50%;
-          opacity: 0;
-          transition: opacity 0.4s ease;
+        .place-row-card:hover { box-shadow: 0 15px 40px rgba(0,0,0,0.1); transform: translateY(-3px); }
+        .place-img { width: 40%; position: relative; }
+        .place-img img { width: 100%; height: 100%; object-fit: cover; }
+        .place-cat {
+             position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.95);
+             padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 800;
+             color: var(--color-primary);
         }
-
-        .security-card:hover .icon-ripple {
-          animation: rippleEffect 2s ease-out infinite;
+        .place-info { width: 60%; padding: 2rem; display: flex; flex-direction: column; }
+        .nav-arrow {
+             width: 50px; height: 50px; border-radius: 50%; background: white; border: 1px solid #eee;
+             display: flex; align-items: center; justify-content: center; cursor: pointer;
+             box-shadow: 0 5px 20px rgba(0,0,0,0.08); transition: 0.3s; flex-shrink: 0; z-index: 5;
         }
-
-        @keyframes rippleEffect {
-          0% { transform: scale(0.9); opacity: 0.6; }
-          100% { transform: scale(1.5); opacity: 0; }
+        .nav-arrow:hover:not(:disabled) { background: var(--color-primary); color: white; transform: scale(1.1); }
+        .nav-arrow:disabled { opacity: 0.5; cursor: not-allowed; }
+        .text-truncate-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .btn-icon-circle {
+             width: 38px; height: 38px; border-radius: 50%; border: 1px solid #eee;
+             background: #f8f9fa; display: flex; align-items: center; justify-content: center;
+             transition: 0.3s; color: var(--color-primary);
         }
+        .btn-icon-circle:hover { background: var(--color-primary); color: white; }
 
-        .icon-security { 
-          background: linear-gradient(135deg, #90ee90, #4a7c59); 
-          color: white; 
-        }
-
-        .icon-security .icon-ripple { 
-          background: linear-gradient(135deg, #90ee90, #4a7c59); 
-        }
-
-        .icon-performance { 
-          background: linear-gradient(135deg, #5f9ea0, #8fbc8f); 
-          color: white; 
-        }
-
-        .icon-performance .icon-ripple { 
-          background: linear-gradient(135deg, #5f9ea0, #8fbc8f); 
-        }
-
-        .icon-offline { 
-          background: linear-gradient(135deg, #8fbc8f, #2d5016); 
-          color: white; 
-        }
-
-        .icon-offline .icon-ripple { 
-          background: linear-gradient(135deg, #8fbc8f, #2d5016); 
-        }
-
-        .security-stats {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.6rem;
-          padding: 0.6rem 1.25rem;
-          background: white;
-          border-radius: 50px;
-          font-size: 0.9rem;
-          font-weight: 700;
-          color: #333;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-        }
-
-        .security-card:hover .security-stats {
-          transform: scale(1.05);
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
-
-        /* === CTA Final Section === */
-        .cta-final-section {
-          position: relative;
-          padding: 8rem 0;
-          background: #0a1f0f;
-        }
-
-        .cta-background {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, #0a1f0f 0%, #1e4d2b 30%, #2d7a3e 70%, #3d9651 100%);
-          z-index: 1;
-        }
-
-        .cta-mesh-gradient {
-          position: absolute;
-          inset: 0;
-          background: 
-            radial-gradient(circle at 10% 20%, rgba(144, 238, 144, 0.15) 0%, transparent 40%),
-            radial-gradient(circle at 90% 80%, rgba(61, 150, 81, 0.15) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(95, 158, 160, 0.1) 0%, transparent 50%);
-          z-index: 2;
-        }
-
-        .cta-icon-container {
-          position: relative;
-          width: 140px;
-          height: 140px;
-          margin: 0 auto;
-        }
-
-        .cta-icon-orbit {
-          position: absolute;
-          border: 2px dashed rgba(144, 238, 144, 0.3);
-          border-radius: 50%;
-          animation: rotate 20s linear infinite;
-        }
-
-        .orbit-1 { inset: -10px; animation-duration: 15s; }
-        .orbit-2 { inset: -25px; animation-duration: 20s; animation-direction: reverse; }
-        .orbit-3 { inset: -40px; animation-duration: 25s; }
-
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .cta-icon-large {
-          width: 140px;
-          height: 140px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, rgba(144, 238, 144, 0.2), rgba(61, 150, 81, 0.2));
-          backdrop-filter: blur(10px);
-          border: 3px solid rgba(144, 238, 144, 0.3);
-          border-radius: 50%;
-          animation: ctaPulse 3s ease-in-out infinite;
-          position: relative;
-          z-index: 2;
-        }
-
-        .cta-icon-large i {
-          font-size: 4.5rem;
-          color: var(--color-light-green);
-          filter: drop-shadow(0 0 20px var(--color-light-green));
-        }
-
-        @keyframes ctaPulse {
-          0%, 100% {
-            box-shadow: 0 0 30px rgba(144, 238, 144, 0.4);
-            transform: scale(1);
-          }
-          50% {
-            box-shadow: 0 0 60px rgba(144, 238, 144, 0.7);
-            transform: scale(1.08);
-          }
-        }
-
-        .btn-cta-primary,
-        .btn-cta-secondary {
-          display: inline-flex;
-          align-items: center;
-          padding: 1.15rem 2.75rem;
-          border-radius: 50px;
-          font-weight: 700;
-          font-size: 1.15rem;
-          text-decoration: none;
-          transition: all 0.4s var(--transition-smooth);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .btn-cta-primary {
-          background: white;
-          color: var(--color-primary);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .btn-cta-primary::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, var(--color-light-green), var(--color-accent));
-          opacity: 0;
-          transition: opacity 0.4s ease;
-        }
-
-        .btn-cta-primary:hover::before {
-          opacity: 1;
-        }
-
-        .btn-cta-primary:hover {
-          transform: translateY(-6px) scale(1.05);
-          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
-          color: white;
-        }
-
-        .btn-cta-primary i,
-        .btn-cta-primary span {
-          position: relative;
-          z-index: 2;
-        }
-
-        .btn-cta-secondary {
-          background: transparent;
-          color: white;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-cta-secondary:hover {
-          transform: translateY(-6px);
-          background: rgba(255, 255, 255, 0.15);
-          border-color: white;
-          color: white;
-          box-shadow: 0 12px 40px rgba(255, 255, 255, 0.2);
-        }
-
-        .floating-icons {
-          position: absolute;
-          inset: 0;
-          z-index: 3;
-          pointer-events: none;
-        }
-
-        .floating-icon {
-          position: absolute;
-          font-size: 3.5rem;
-          color: rgba(144, 238, 144, 0.2);
-          animation: iconFloat 10s ease-in-out infinite;
-        }
-
-        .icon-1 { top: 10%; left: 8%; animation-delay: 0s; }
-        .icon-2 { top: 65%; right: 12%; animation-delay: 2.5s; }
-        .icon-3 { bottom: 15%; left: 15%; animation-delay: 5s; }
-        .icon-4 { top: 35%; right: 20%; animation-delay: 7.5s; font-size: 2.5rem; }
-
-        @keyframes iconFloat {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0.2;
-          }
-          50% {
-            transform: translateY(-40px) rotate(180deg);
-            opacity: 0.4;
-          }
-        }
-
-        /* === Responsive Design === */
-        @media (max-width: 1200px) {
-          .hero-title { font-size: 5.5rem; }
-          .hero-subtitle-text { font-size: 2.2rem; }
-        }
-
-        @media (max-width: 992px) {
-          .hero-title { font-size: 4.5rem; letter-spacing: -2px; }
-          .hero-subtitle-text { font-size: 2rem; }
-          .hero-description { font-size: 1.2rem; }
-          .display-4 { font-size: 2.5rem !important; }
-
-          .visual-container { gap: 2rem; }
-          .phone-mockup { width: 220px; height: 440px; }
-          .web-mockup { width: 260px; height: 190px; }
-          .connection-line { flex-direction: column; gap: 0.75rem; }
-          .connection-segment { width: 3px; height: 30px; }
-        }
-
-        @media (max-width: 768px) {
-          .hero-title { font-size: 3.5rem; }
-          .hero-subtitle-text { font-size: 1.6rem; }
-          .hero-description { font-size: 1.05rem; padding: 0 1rem !important; }
-          
-          .platform-badge { padding: 0.4rem; }
-          .platform-badge-inner { padding: 0.9rem 1.25rem; gap: 1rem; }
-          .platform-badge i { font-size: 2.5rem; }
-          .badge-title { font-size: 1.05rem; }
-          .badge-subtitle { font-size: 0.85rem; }
-
-          .phone-mockup { width: 190px; height: 380px; }
-          .app-icon { font-size: 3rem !important; }
-          .web-mockup { width: 220px; height: 170px; }
-          .web-icon { font-size: 2rem !important; }
-
-          .card-inner { padding: 2rem 1.5rem; }
-          .card-icon-wrapper { width: 70px; height: 70px; font-size: 2.2rem; }
-          .card-title { font-size: 1.2rem; }
-          .card-description { font-size: 0.9rem; }
-
-          .security-icon-large { width: 90px; height: 90px; font-size: 3rem; }
-          
-          .cta-icon-large { width: 110px; height: 110px; }
-          .cta-icon-large i { font-size: 3.5rem; }
-          .btn-cta-primary, .btn-cta-secondary { 
-            padding: 1rem 2rem; 
-            font-size: 1rem; 
-            width: 100%; 
-            justify-content: center; 
-          }
-
-          .floating-icon { font-size: 2.5rem; }
-        }
-
-        @media (max-width: 576px) {
-          .hero-title { font-size: 2.8rem; }
-          .hero-subtitle-text { font-size: 1.3rem; }
-          .lead { font-size: 1rem !important; }
-
-          .section-label { font-size: 0.75rem; padding: 0.65rem 1.25rem; letter-spacing: 1.5px; }
-          .display-1 { font-size: 2.5rem !important; }
-          .display-3 { font-size: 2rem !important; }
-          .display-4 { font-size: 1.85rem !important; }
-
-          .phone-mockup { width: 170px; height: 340px; padding: 10px; }
-          .phone-screen { border-radius: 28px; }
-          .app-icon-wrapper { width: 70px; height: 70px; }
-          .app-icon { font-size: 2.5rem !important; }
-
-          .web-mockup { width: 190px; height: 140px; }
-          .web-icon-wrapper { width: 50px; height: 50px; }
-          .web-icon { font-size: 1.5rem !important; }
-
-          .feature-highlight-box { padding: 1.5rem !important; }
-          .platform-item { padding: 1rem; gap: 1rem; }
-          .platform-icon { width: 48px; height: 48px; font-size: 1.4rem; }
+        @media (max-width: 991px) {
+           .nav-dock-minimal { display: none; }
+           .poi-nav-arrow { width: 40px; height: 40px; }
+           .poi-nav-arrow.left { left: 10px; }
+           .poi-nav-arrow.right { right: 10px; }
+           .place-row-card { flex-direction: column; }
+           .place-img { width: 100%; height: 200px; }
+           .place-info { width: 100%; }
         }
       `}</style>
     </>

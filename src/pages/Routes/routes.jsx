@@ -22,6 +22,10 @@ import GestionIntereses from "../Admin/GestionIntereses";
 import GestionNotificaciones from "../Admin/GestionNotificaciones";
 import MonitorActividad from "../Admin/MonitorActividad";
 import Dashboard from "../Admin/Dashboard";
+import Contactanos from "../Home/Contactanos";
+import Faq from "../Home/FAQ";
+import AdminMensajes from "../Admin/AdminMensajes";
+import AdminFaq from "../Admin/AdminFaq";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +37,14 @@ export const router = createBrowserRouter([
         path: "/",
         element: <Home />,
         index: true,
+      },
+      {
+        path: "/contacto",
+        element: <Contactanos />,
+      },
+      {
+        path: "/faq",
+        element: <Faq />,
       },
       {
         path: "/login",
@@ -108,6 +120,14 @@ export const router = createBrowserRouter([
       {
         path: "actividad",
         element: <MonitorActividad />,
+      },
+      {
+        path: "mensajes",
+        element: <AdminMensajes />,
+      },
+      {
+        path: "faq",
+        element: <AdminFaq />,
       },
       {
         path: "configuracion",

@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  useContext,
-  useEffect,
-  useReducer,
-  createContext,
-} from "react";
-import axios from "axios";
+import React, { useState, useContext, useEffect } from "react";
 import {
   Container,
   Card,
@@ -18,7 +11,6 @@ import {
   Spinner,
   Badge,
   InputGroup,
-  Alert,
 } from "react-bootstrap";
 import {
   Plus,
@@ -27,141 +19,19 @@ import {
   X,
   CheckCircle,
   XCircle,
-  Hash,
   Save,
   Search,
-  Filter,
   RefreshCw,
   Power,
   MapPin,
-  Award, // Icono para destacar (Premio)
-  Trophy, // Icono Trofeo
+  Award,
+  Trophy,
   SortAsc,
   AlignLeft,
 } from "lucide-react";
 
-// --- 1. CONTEXTO Y REDUCER ---
-
-const POIsContext = createContext();
-
-const GET_POIS = "GET_POIS";
-const GET_LUGARES_FOR_SELECT = "GET_LUGARES_FOR_SELECT";
-const CREATE_POI = "CREATE_POI";
-const UPDATE_POI = "UPDATE_POI";
-const DELETE_POI = "DELETE_POI";
-
-const extractData = (payload) => {
-  if (payload && payload.$values) return payload.$values;
-  return payload;
-};
-
-const POIsReducer = (state, action) => {
-  const { payload, type } = action;
-  switch (type) {
-    case GET_POIS:
-      return {
-        ...state,
-        pois: Array.isArray(extractData(payload)) ? extractData(payload) : [],
-      };
-    case GET_LUGARES_FOR_SELECT:
-      return {
-        ...state,
-        lugares: Array.isArray(extractData(payload))
-          ? extractData(payload)
-          : [],
-      };
-    case CREATE_POI:
-      return state;
-    case UPDATE_POI:
-      return state;
-    case DELETE_POI:
-      return {
-        ...state,
-        pois: state.pois.filter((p) => p.idPunto !== payload),
-      };
-    default:
-      return state;
-  }
-};
-
-// --- 2. STATE ---
-
-const API_POIS_URL = "http://localhost:5219/api/PuntosInteres";
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
-
-const POIsState = ({ children }) => {
-  const initialState = { pois: [], lugares: [] };
-  const [state, dispatch] = useReducer(POIsReducer, initialState);
-
-  const getPOIs = async () => {
-    try {
-      const res = await axios.get(API_POIS_URL);
-      dispatch({ type: GET_POIS, payload: res.data });
-    } catch (error) {
-      console.error("Error getting POIs:", error);
-      throw error;
-    }
-  };
-
-  // Necesitamos cargar lugares para el Dropdown del formulario
-  const getLugaresForSelect = async () => {
-    try {
-      const res = await axios.get(API_LUGARES_URL);
-      dispatch({ type: GET_LUGARES_FOR_SELECT, payload: res.data });
-    } catch (error) {
-      console.error("Error getting Lugares:", error);
-    }
-  };
-
-  const createPOI = async (data) => {
-    try {
-      const res = await axios.post(API_POIS_URL, data);
-      dispatch({ type: CREATE_POI, payload: res.data });
-    } catch (error) {
-      console.error("Error create POI:", error);
-      throw error;
-    }
-  };
-
-  const updatePOI = async (id, data) => {
-    try {
-      const dataToSend = { ...data, idPunto: id };
-      await axios.put(`${API_POIS_URL}/${id}`, dataToSend);
-      dispatch({ type: UPDATE_POI, payload: dataToSend });
-    } catch (error) {
-      console.error("Error update POI:", error);
-      throw error;
-    }
-  };
-
-  const deletePOI = async (id) => {
-    try {
-      await axios.delete(`${API_POIS_URL}/${id}`);
-      dispatch({ type: DELETE_POI, payload: id });
-    } catch (error) {
-      console.error("Error delete POI:", error);
-      throw error;
-    }
-  };
-
-  return (
-    <POIsContext.Provider
-      value={{
-        pois: state.pois,
-        lugaresDisponibles: state.lugares,
-        getPOIs,
-        getLugaresForSelect,
-        createPOI,
-        updatePOI,
-        deletePOI,
-      }}
-    >
-      {children}
-    </POIsContext.Provider>
-  );
-};
-
-// --- 3. UI ---
+import PuntosInteresState from "../../Context/PuntosInteres/PuntosInteresState";
+import PuntosInteresContext from "../../Context/PuntosInteres/PuntosInteresContext";
 
 const kairosTheme = {
   primary: "#4ecca3",
@@ -410,6 +280,7 @@ const POIModal = ({ show, handleClose, savePOI, poi, lugares, loading }) => {
 };
 
 const GestionPOIsContent = () => {
+  // Consumimos el contexto importado (ya NO se define aquí)
   const {
     pois,
     lugaresDisponibles,
@@ -418,7 +289,8 @@ const GestionPOIsContent = () => {
     createPOI,
     updatePOI,
     deletePOI,
-  } = useContext(POIsContext);
+  } = useContext(PuntosInteresContext);
+
   const [loading, setLoading] = useState({ data: false, action: false });
   const [message, setMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -440,6 +312,7 @@ const GestionPOIsContent = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line
   }, []);
 
   const showMessage = (text, type = "info") => {
@@ -451,6 +324,7 @@ const GestionPOIsContent = () => {
     setPoiToEdit(null);
     setShowModal(true);
   };
+
   const handleEdit = (id) => {
     const p = pois.find((x) => x.idPunto === id);
     if (p) {
@@ -464,12 +338,13 @@ const GestionPOIsContent = () => {
     setLoading((p) => ({ ...p, action: true }));
     try {
       const cleanData = { ...poi, estatus: !poi.estatus };
-      delete cleanData.idLugarNavigation; // Limpiar navegación para evitar error 400
+      delete cleanData.idLugarNavigation;
       await updatePOI(poi.idPunto, cleanData);
       showMessage(
         `Punto ${!poi.estatus ? "activado" : "desactivado"}`,
         "success"
       );
+      // Opcional si tu reducer actualiza localmente, si no, recargamos:
       await getPOIs();
     } catch (e) {
       showMessage("Error al cambiar estatus", "danger");
@@ -839,10 +714,11 @@ const GestionPOIsContent = () => {
   );
 };
 
+// Envolvemos el componente con el State Provider importado
 const GestionPOIs = () => (
-  <POIsState>
+  <PuntosInteresState>
     <GestionPOIsContent />
-  </POIsState>
+  </PuntosInteresState>
 );
 
 export default GestionPOIs;

@@ -61,7 +61,7 @@ const Login = () => {
           errorMessage = `Error de servidor: ${err.response.status}`;
         }
       } else if (err.message) {
-        errorMessage = err.message; // Error de red o Axios
+        errorMessage = err.message;
       }
 
       setError(errorMessage);
@@ -836,21 +836,6 @@ const Login = () => {
                       </>
                     )}
                   </Button>
-
-                  <div className="divider">
-                    <span>O continúa con</span>
-                  </div>
-
-                  <div className="social-login-buttons">
-                    <button type="button" className="social-btn">
-                      <i className="bi bi-google"></i>
-                      Google
-                    </button>
-                    <button type="button" className="social-btn">
-                      <i className="bi bi-facebook"></i>
-                      Facebook
-                    </button>
-                  </div>
 
                   <div className="signup-prompt">
                     ¿No tienes una cuenta?{" "}

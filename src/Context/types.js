@@ -73,3 +73,22 @@ export const GET_INTERESES = 'GET_INTERESES';
 export const CREATE_INTERES = 'CREATE_INTERES';
 export const UPDATE_INTERES = 'UPDATE_INTERES';
 export const DELETE_INTERES = 'DELETE_INTERES';
+
+//POIs
+export const GET_POIS = "GET_POIS";
+export const GET_LUGARES_FOR_SELECT = "GET_LUGARES_FOR_SELECT";
+export const CREATE_POI = "CREATE_POI";
+export const UPDATE_POI = "UPDATE_POI";
+export const DELETE_POI = "DELETE_POI";
+
+// Módulo Mensajes
+export const GET_MENSAJES = 'GET_MENSAJES';
+export const CREATE_MENSAJE = 'CREATE_MENSAJE';
+export const UPDATE_MENSAJE = 'UPDATE_MENSAJE';
+export const DELETE_MENSAJE = 'DELETE_MENSAJE';
+
+// Módulo FAQ
+export const GET_FAQS = 'GET_FAQS';
+export const CREATE_FAQ = 'CREATE_FAQ';
+export const UPDATE_FAQ = 'UPDATE_FAQ';
+export const DELETE_FAQ = 'DELETE_FAQ';

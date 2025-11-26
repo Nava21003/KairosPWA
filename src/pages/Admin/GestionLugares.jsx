@@ -30,23 +30,36 @@ import {
   Hash,
   Save,
   Search,
-  Filter,
   RefreshCw,
   Power,
-  MapPin, // Icono Lugar
-  Clock, // Icono Horario
-  Info, // Icono Info
-  Star, // Icono Patrocinado
-  Map, // Icono Mapa
-  Globe, // Icono Coordenadas
-  AlignLeft, // Icono Descripción
+  MapPin,
+  Clock,
+  Info,
+  Star,
+  Map,
+  Globe,
+  AlignLeft,
+  Image as ImageIcon, // Nuevo Icono para imagen
 } from "lucide-react";
 
-// --- 1. CONTEXTO Y REDUCER (Integrados) ---
+// --- CONFIGURACIÓN API ---
+const API_BASE_URL = "http://localhost:5219"; // Base para imágenes
+const API_LUGARES_URL = `${API_BASE_URL}/api/Lugares`;
+const API_CATEGORIAS_URL = `${API_BASE_URL}/api/Categorias`;
+
+// Helper para construir la URL de la imagen
+const getImageUrl = (path) => {
+  if (!path) return "https://via.placeholder.com/150?text=Sin+Foto";
+  // Si ya es una URL absoluta (https://...), la dejamos tal cual
+  if (path.startsWith("http")) return path;
+  // Si es relativa, le pegamos el dominio del backend
+  return `${API_BASE_URL}/${path}`;
+};
+
+// --- 1. CONTEXTO Y REDUCER ---
 
 const LugaresContext = createContext();
 
-// Tipos de Acciones
 const GET_LUGARES = "GET_LUGARES";
 const GET_CATEGORIAS = "GET_CATEGORIAS";
 const CREATE_LUGAR = "CREATE_LUGAR";
@@ -78,12 +91,10 @@ const LugaresReducer = (state, action) => {
         categorias: Array.isArray(dataToUse) ? dataToUse : [],
       };
     }
-    case CREATE_LUGAR: {
+    case CREATE_LUGAR:
       return state;
-    }
-    case UPDATE_LUGAR: {
+    case UPDATE_LUGAR:
       return state;
-    }
     case DELETE_LUGAR: {
       const idToDelete = payload;
       return {
@@ -95,11 +106,6 @@ const LugaresReducer = (state, action) => {
       return state;
   }
 };
-
-// --- 2. STATE (Lógica de Negocio) ---
-
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
-const API_CATEGORIAS_URL = "http://localhost:5219/api/Categorias";
 
 const LugaresState = ({ children }) => {
   const initialState = {
@@ -197,13 +203,11 @@ const kairosTheme = {
 
 const MessageBox = ({ message }) => {
   if (!message) return null;
-
   const iconMap = {
     success: <CheckCircle size={20} />,
     danger: <XCircle size={20} />,
     info: <MapPin size={20} />,
   };
-
   const colorMap = {
     success: kairosTheme.success,
     danger: kairosTheme.danger,
@@ -254,6 +258,7 @@ const LugarModal = ({
     longitud: "",
     direccion: "",
     horario: "",
+    imagen: "", // CAMPO IMAGEN
     esPatrocinado: false,
     estatus: true,
   };
@@ -272,6 +277,7 @@ const LugarModal = ({
         longitud: lugar.longitud || "",
         direccion: lugar.direccion || "",
         horario: lugar.horario || "",
+        imagen: lugar.imagen || "", // CARGAR IMAGEN
         esPatrocinado: lugar.esPatrocinado ?? false,
         estatus: lugar.estatus ?? true,
       });
@@ -328,12 +334,12 @@ const LugarModal = ({
         <Modal.Title className="d-flex align-items-center fw-bold">
           {isEditing ? (
             <>
-              <Pencil className="me-2" style={{ color: kairosTheme.info }} />{" "}
+              <Pencil className="me-2" style={{ color: kairosTheme.info }} />
               Editar Lugar
             </>
           ) : (
             <>
-              <Plus className="me-2" style={{ color: kairosTheme.primary }} />{" "}
+              <Plus className="me-2" style={{ color: kairosTheme.primary }} />
               Nuevo Lugar
             </>
           )}
@@ -341,6 +347,7 @@ const LugarModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
+          {/* PRIMERA FILA: Nombre y Categoría */}
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
               <Form.Label className="fw-semibold">
@@ -383,6 +390,7 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
+          {/* SEGUNDA FILA: Dirección y Horario */}
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
               <Form.Label className="fw-semibold">
@@ -414,6 +422,7 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
+          {/* TERCERA FILA: Latitud y Longitud */}
           <Row className="mb-3">
             <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">Latitud</Form.Label>
@@ -439,6 +448,58 @@ const LugarModal = ({
             </Form.Group>
           </Row>
 
+          {/* CUARTA FILA: Imagen (URL) */}
+          <Row className="mb-3">
+            <Form.Group as={Col} md={9}>
+              <Form.Label className="fw-semibold">
+                <ImageIcon size={16} className="me-1" /> URL Imagen
+              </Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="https://ejemplo.com/foto.jpg o uploads/foto.jpg"
+                name="imagen"
+                value={formData.imagen}
+                onChange={handleChange}
+              />
+              <Form.Text className="text-muted">
+                Pega la URL completa o la ruta relativa guardada en el servidor.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group
+              as={Col}
+              md={3}
+              className="d-flex align-items-center justify-content-center"
+            >
+              {/* PREVISUALIZACIÓN IMAGEN */}
+              <div
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  border: "1px solid #dee2e6",
+                  backgroundColor: "#f8f9fa",
+                  marginTop: "10px",
+                }}
+              >
+                <img
+                  src={getImageUrl(formData.imagen)}
+                  alt="Previsualización"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://via.placeholder.com/150?text=Error";
+                  }}
+                />
+              </div>
+            </Form.Group>
+          </Row>
+
+          {/* QUINTA FILA: Descripción */}
           <Form.Group className="mb-3">
             <Form.Label className="fw-semibold">
               <Info size={16} className="me-1" /> Descripción
@@ -453,6 +514,7 @@ const LugarModal = ({
             />
           </Form.Group>
 
+          {/* SEXTA FILA: Switches */}
           <Row>
             <Col md={6}>
               <Form.Group className="mb-3">
@@ -740,7 +802,7 @@ const GestionLugaresContent = () => {
                     Gestión de Lugares
                   </h1>
                   <p className="mb-0 opacity-90">
-                    Administra los puntos de interés, ubicaciones y detalles.
+                    Administra los puntos de interés, fotos y detalles.
                   </p>
                 </div>
               </div>
@@ -974,11 +1036,13 @@ const GestionLugaresContent = () => {
           style={{ borderRadius: "12px", overflow: "hidden" }}
         >
           <div className="table-responsive">
-            {/* Aumenté el minWidth para que quepan las nuevas columnas */}
             <Table className="align-middle mb-0" style={{ minWidth: "1200px" }}>
               <thead style={{ backgroundColor: kairosTheme.light }}>
                 <tr>
                   <th className="p-3">ID</th>
+                  <th className="p-3 text-center">
+                    <ImageIcon size={16} /> Foto
+                  </th>
                   <th className="p-3">
                     <div className="d-flex align-items-center">
                       <MapPin size={16} className="me-2" /> Lugar
@@ -1014,11 +1078,38 @@ const GestionLugaresContent = () => {
                         #{l.idLugar}
                       </Badge>
                     </td>
+                    {/* COLUMNA FOTO */}
+                    <td className="p-3 text-center">
+                      <div
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          borderRadius: "10px",
+                          overflow: "hidden",
+                          margin: "0 auto",
+                          border: "1px solid #dee2e6",
+                        }}
+                      >
+                        <img
+                          src={getImageUrl(l.imagen)}
+                          alt={l.nombre}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/150?text=IMG";
+                          }}
+                        />
+                      </div>
+                    </td>
                     <td className="p-3">
                       <div className="fw-bold">{l.nombre}</div>
                     </td>
-                    {/* COLUMNA DESCRIPCIÓN (NUEVA) */}
-                    <td className="p-3" style={{ maxWidth: "250px" }}>
+                    <td className="p-3" style={{ maxWidth: "200px" }}>
                       <div
                         className="text-truncate"
                         title={l.descripcion || "Sin descripción"}
@@ -1037,7 +1128,6 @@ const GestionLugaresContent = () => {
                           `ID: ${l.idCategoria}`}
                       </Badge>
                     </td>
-                    {/* COLUMNA HORARIO (SEPARADA) */}
                     <td className="p-3">
                       <small className="text-muted font-monospace">
                         {l.horario || "N/A"}
@@ -1052,7 +1142,6 @@ const GestionLugaresContent = () => {
                         {l.direccion}
                       </div>
                     </td>
-                    {/* COLUMNA COORDENADAS (NUEVA) */}
                     <td className="p-3">
                       <div style={{ fontSize: "0.85rem" }}>
                         <div className="d-flex align-items-center text-muted">
@@ -1137,7 +1226,7 @@ const GestionLugaresContent = () => {
                 ))}
                 {filteredLugares.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan="10" className="text-center p-5 text-muted">
+                    <td colSpan="11" className="text-center p-5 text-muted">
                       No se encontraron lugares
                     </td>
                   </tr>
