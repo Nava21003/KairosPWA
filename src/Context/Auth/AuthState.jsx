@@ -4,7 +4,8 @@ import AuthContext from "./AuthContext";
 import AuthReduce from "./AuthReduce";
 import { LOGIN_SUCCESS, REGISTER_SUCCESS, LOGOUT } from "../types";
 
-const API_AUTH_URL = "http://localhost:5219/api/Auth";
+const API_AUTH_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Auth";
 
 const AuthState = ({ children }) => {
   const loadPersisted = () => {

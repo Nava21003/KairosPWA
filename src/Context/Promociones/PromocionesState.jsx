@@ -11,7 +11,8 @@ import {
 } from "../types";
 import PromocionesReduce from "./PromocionesReduce";
 
-const API_PROMOCIONES_URL = "http://localhost:5219/api/Promociones";
+const API_PROMOCIONES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/promociones";
 
 const PromocionesState = ({ children }) => {
   const initialState = {

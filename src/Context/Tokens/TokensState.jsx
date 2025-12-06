@@ -9,7 +9,8 @@ import {
   DELETE_TOKEN,
 } from "../types";
 
-const API_TOKENS_URL = "http://localhost:5219/api/Tokens";
+const API_TOKENS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Tokens";
 
 const TokensState = ({ children }) => {
   const initialState = {

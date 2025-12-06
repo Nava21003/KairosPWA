@@ -40,7 +40,8 @@ import {
   Award,
 } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:5219";
+const API_BASE_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net";
 const API_PROMOCIONES = `${API_BASE_URL}/api/Promociones`;
 const API_LUGARES = `${API_BASE_URL}/api/Lugares`;
 const API_SOCIOS = `${API_BASE_URL}/api/SociosAfiliados`;

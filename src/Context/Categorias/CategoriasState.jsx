@@ -9,7 +9,8 @@ import {
   DELETE_CATEGORIA,
 } from "../types";
 
-const API_CATEGORIAS_URL = "http://localhost:5219/api/Categorias";
+const API_CATEGORIAS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Categorias";
 
 const CategoriasState = ({ children }) => {
   const initialState = {

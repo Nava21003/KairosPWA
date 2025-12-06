@@ -69,7 +69,6 @@ const ActividadesReducer = (state, action) => {
         users: Array.isArray(dataToUse) ? dataToUse : [],
       };
     }
-    // Nuevo Caso para el Historial
     case GET_HISTORIAL_VISITAS: {
       const dataToUse = extractData(payload);
       return {
@@ -82,7 +81,8 @@ const ActividadesReducer = (state, action) => {
   }
 };
 
-const API_BASE_URL = "http://localhost:5219";
+const API_BASE_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net";
 const API_ACTIVIDADES_URL = `${API_BASE_URL}/api/Actividades`;
 const API_USUARIOS_URL = `${API_BASE_URL}/api/Usuarios`;
 const API_LUGARES_URL = `${API_BASE_URL}/api/Lugares`;
@@ -140,7 +140,6 @@ const ActividadesState = ({ children }) => {
   );
 };
 
-// --- THEME ---
 const kairosTheme = {
   primary: "#4ecca3",
   secondary: "#6c757d",

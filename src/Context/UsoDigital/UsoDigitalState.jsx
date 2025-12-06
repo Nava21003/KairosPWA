@@ -4,7 +4,8 @@ import UsoDigitalContext from "./UsoDigitalContext";
 import UsoDigitalReduce from "./UsoDigitalReduce";
 import { GET_USO_DIGITAL_BY_USER, CREATE_USO_DIGITAL } from "../types";
 
-const API_USO_DIGITAL_URL = "http://localhost:5219/api/UsoDigital";
+const API_USO_DIGITAL_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/UsoDigital";
 
 const UsoDigitalState = ({ children }) => {
   const initialState = {

@@ -11,17 +11,11 @@ import {
 } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 
-// Nota: En tu proyecto real, descomenta el import del Contexto y elimina los datos simulados.
-// import FaqContext from "../../Context/Faq/FaqContext";
-
 const Faq = () => {
-  // === SIMULACIÓN DE CONTEXTO (Para que funcione la vista previa) ===
-  // En tu código real, usarías: const { faqs, getFaqs } = useContext(FaqContext);
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulamos la carga de datos
     const loadData = () => {
       setLoading(true);
       setTimeout(() => {
@@ -72,7 +66,6 @@ const Faq = () => {
     };
     loadData();
   }, []);
-  // ================================================================
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeKey, setActiveKey] = useState("0");
@@ -114,7 +107,6 @@ const Faq = () => {
   return (
     <>
       <section className="faq-section position-relative overflow-hidden">
-        {/* === ELEMENTOS DE FONDO (Iguales a los otros componentes) === */}
         <div className="faq-bg-gradient"></div>
         <div className="faq-particles"></div>
         <div className="floating-shape shape-1"></div>
@@ -124,7 +116,6 @@ const Faq = () => {
           className="pt-5 pb-5 position-relative"
           style={{ zIndex: 10 }}
         >
-          {/* === ENCABEZADO === */}
           <Row className="justify-content-center text-center mb-5">
             <Col lg={8}>
               <div className="d-inline-block mb-3">
@@ -140,7 +131,6 @@ const Faq = () => {
                 sin contratiempos.
               </p>
 
-              {/* === BUSCADOR ESTILIZADO === */}
               <div className="search-box-wrapper mx-auto">
                 <InputGroup className="search-input-group">
                   <InputGroup.Text className="bg-transparent border-0 ps-4 text-light-green">
@@ -166,7 +156,6 @@ const Faq = () => {
             </Col>
           </Row>
 
-          {/* === LISTA DE PREGUNTAS === */}
           <Row className="justify-content-center">
             <Col lg={9}>
               {loading ? (

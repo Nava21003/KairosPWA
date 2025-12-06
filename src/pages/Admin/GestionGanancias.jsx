@@ -35,7 +35,8 @@ const kairosTheme = {
   bodyBg: "#f4f6f9",
 };
 
-const API_BASE_URL = "http://localhost:5219";
+const API_BASE_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net";
 
 const GestionGanancias = () => {
   const [data, setData] = useState([]);

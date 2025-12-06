@@ -9,7 +9,8 @@ import {
   DELETE_INTERES,
 } from "../types";
 
-const API_INTERESES_URL = "http://localhost:5219/api/Intereses";
+const API_INTERESES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Intereses";
 
 const InteresesState = ({ children }) => {
   const initialState = {

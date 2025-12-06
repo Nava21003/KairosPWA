@@ -8,8 +8,10 @@ import {
   GET_HISTORIAL_VISITAS,
 } from "../types";
 
-const API_ACTIVIDADES_URL = "http://localhost:5219/api/Actividades";
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
+const API_ACTIVIDADES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Actividades";
+const API_LUGARES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Lugares";
 
 const ActividadesState = ({ children }) => {
   const initialState = {

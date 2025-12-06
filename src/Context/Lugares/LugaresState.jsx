@@ -4,7 +4,8 @@ import LugaresContext from "./LugaresContext";
 import LugaresReduce from "./LugaresReduce";
 import { GET_LUGARES } from "../types";
 
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
+const API_LUGARES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Lugares";
 
 const LugaresState = ({ children }) => {
   const initialState = {

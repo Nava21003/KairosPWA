@@ -10,7 +10,8 @@ import {
   DELETE_MENSAJE,
 } from "../types";
 
-const API_MENSAJES_URL = "http://localhost:5219/api/MensajesContacto";
+const API_MENSAJES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/MensajesContacto";
 
 const MensajesState = ({ children }) => {
   const initialState = {

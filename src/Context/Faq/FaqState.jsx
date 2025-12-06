@@ -4,7 +4,8 @@ import FaqContext from "./FaqContext";
 import FaqReducer from "./FaqReducer";
 import { GET_FAQS, CREATE_FAQ, UPDATE_FAQ, DELETE_FAQ } from "../types";
 
-const API_FAQ_URL = "http://localhost:5219/api/PreguntasFrecuentes";
+const API_FAQ_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/PreguntasFrecuentes";
 
 const FaqState = ({ children }) => {
   const initialState = {

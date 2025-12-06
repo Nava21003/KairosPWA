@@ -10,8 +10,10 @@ import {
 import PuntosInteresReduce from "./PuntosInteresReduce";
 import PuntosInteresContext from "./PuntosInteresContext";
 
-const API_POIS_URL = "http://localhost:5219/api/PuntosInteres";
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
+const API_POIS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/PuntosInteres";
+const API_LUGARES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Lugares";
 
 const PuntosInteresState = ({ children }) => {
   const initialState = {

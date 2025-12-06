@@ -4,7 +4,8 @@ import RoleContext from "./RoleContext";
 import { GET_ROLES } from "../types";
 import RoleReduce from "./RoleReduce";
 
-const API_ROLE_URL = "http://localhost:5219/api/Roles";
+const API_ROLE_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Roles";
 
 const RoleState = ({ children }) => {
   const initialState = {

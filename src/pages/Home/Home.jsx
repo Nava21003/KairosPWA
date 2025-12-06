@@ -46,7 +46,6 @@ const Home = () => {
 
   return (
     <>
-      {/* SECCIÓN 1: HERO & INTRO */}
       <section
         ref={section1Ref}
         className="hero-section full-screen-section text-dark position-relative overflow-hidden"
@@ -200,7 +199,6 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* SECCIÓN 2: PROPÓSITO + CARACTERÍSTICAS */}
       <section
         ref={section2Ref}
         className="combined-section full-screen-section d-flex align-items-center position-relative"
@@ -335,7 +333,6 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* SECCIÓN 3: IDEA CENTRAL & ECOSISTEMA */}
       <section
         ref={section3Ref}
         className="purpose-section full-screen-section bg-white"
@@ -455,7 +452,6 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* SECCIÓN: CIERRE IMPACTANTE */}
       <section
         ref={section4Ref}
         className="cta-final-section full-screen-section position-relative overflow-hidden"

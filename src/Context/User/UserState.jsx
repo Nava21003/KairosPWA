@@ -4,7 +4,8 @@ import UserContext from "./UserContext";
 import { GET_PROFILE, GET_USERS, CAMBIAR_ESTATUS } from "../types";
 import UserReduce from "./UserReduce";
 
-const API_URL_BASE = "http://localhost:5219/api/Usuarios";
+const API_URL_BASE =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Usuarios";
 
 const UserState = ({ children }) => {
   const initialState = {

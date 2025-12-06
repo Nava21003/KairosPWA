@@ -10,7 +10,8 @@ import {
 } from "../types";
 import SociosAfiliadosReduce from "./SociosAfiliadosReduce";
 
-const API_SOCIOS_URL = "http://localhost:5219/api/SociosAfiliados";
+const API_SOCIOS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/SociosAfiliados";
 
 const SociosAfiliadosState = ({ children }) => {
   const initialState = {

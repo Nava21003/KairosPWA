@@ -192,7 +192,6 @@ const SeccionReseñas = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="pt-2 pb-4">
-          {/* Formulario directo, sin condicionales de alerta interna */}
           <Form onSubmit={handleSubmit}>
             <p className="text-muted small mb-4">
               Tu opinión nos ayuda a mejorar Kairos para todos.

@@ -9,7 +9,8 @@ import {
   DELETE_RESENA,
 } from "../types";
 
-const API_RESENAS_URL = "http://localhost:5219/api/Resenas";
+const API_RESENAS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Resenas";
 
 const ReseniasState = ({ children }) => {
   const initialState = {

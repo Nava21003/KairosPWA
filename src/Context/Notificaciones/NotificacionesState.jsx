@@ -8,7 +8,8 @@ import {
   DELETE_NOTIFICACION,
 } from "../types";
 
-const API_NOTIFICACIONES_URL = "http://localhost:5219/api/Notificaciones";
+const API_NOTIFICACIONES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Notificaciones";
 
 const NotificacionesState = ({ children }) => {
   const initialState = {

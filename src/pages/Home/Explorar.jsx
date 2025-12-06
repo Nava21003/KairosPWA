@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 
-const API_BASE_URL = "http://localhost:5219/";
+const API_BASE_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/";
 
 const CITY_OPTIONS = [
   { label: "León", value: "León, Guanajuato", displayTitle: "León, Gto." },

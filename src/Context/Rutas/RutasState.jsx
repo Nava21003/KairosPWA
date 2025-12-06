@@ -12,8 +12,10 @@ import {
   GET_LUGARES_PARA_RUTAS,
 } from "../types";
 
-const API_RUTAS_URL = "http://localhost:5219/api/Rutas";
-const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
+const API_RUTAS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Rutas";
+const API_LUGARES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Lugares";
 
 const RutasState = ({ children }) => {
   const initialState = {

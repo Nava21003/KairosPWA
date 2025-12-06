@@ -80,8 +80,10 @@ const NotificacionesReducer = (state, action) => {
   }
 };
 
-const API_NOTIFICACIONES_URL = "http://localhost:5219/api/Notificaciones";
-const API_USUARIOS_URL = "http://localhost:5219/api/Usuarios";
+const API_NOTIFICACIONES_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Notificaciones";
+const API_USUARIOS_URL =
+  "https://kairos-api-deleon-cwffh5augvctfyb7.westus-01.azurewebsites.net/api/Usuarios";
 
 const NotificacionesState = ({ children }) => {
   const initialState = {
