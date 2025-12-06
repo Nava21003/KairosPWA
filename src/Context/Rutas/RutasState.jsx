@@ -1,21 +1,31 @@
 import React, { useReducer } from "react";
 import axios from "axios";
+
 import RutasContext from "./RutasContext";
-import RutasReduce from "./RutasReduce";
-import { GET_RUTAS, CREATE_RUTA, UPDATE_RUTA, DELETE_RUTA } from "../types";
+import RutasReducer from "./RutasReducer";
+
+import {
+  GET_RUTAS,
+  CREATE_RUTA,
+  UPDATE_RUTA,
+  DELETE_RUTA,
+  GET_LUGARES_PARA_RUTAS,
+} from "../types";
 
 const API_RUTAS_URL = "http://localhost:5219/api/Rutas";
+const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
 
 const RutasState = ({ children }) => {
   const initialState = {
     rutas: [],
+    lugaresDisponibles: [],
   };
 
-  const [state, dispatch] = useReducer(RutasReduce, initialState);
+  const [state, dispatch] = useReducer(RutasReducer, initialState);
 
-  /**
-   * Obtiene todas las rutas (GET /api/Rutas)
-   */
+  /* ================================
+        GET - Obtener rutas
+  ================================= */
   const getRutas = async () => {
     try {
       const res = await axios.get(API_RUTAS_URL);
@@ -30,55 +40,72 @@ const RutasState = ({ children }) => {
     }
   };
 
-  /**
-   * Crea una nueva ruta (POST /api/Rutas)
-   */
+  /* ================================
+        GET - Obtener Lugares
+  ================================= */
+  const getLugares = async () => {
+    try {
+      const res = await axios.get(API_LUGARES_URL);
+      dispatch({ type: GET_LUGARES_PARA_RUTAS, payload: res.data });
+      return res.data;
+    } catch (error) {
+      console.error("Error al obtener lugares:", error);
+      throw error;
+    }
+  };
+
+  /* ================================
+        POST - Crear Ruta
+  ================================= */
   const createRuta = async (rutaData) => {
     try {
       const response = await axios.post(API_RUTAS_URL, rutaData);
-      await getRutas();
       return response.data;
     } catch (error) {
       console.error(
         "ERROR (Crear Ruta):",
-        error.response?.data?.errors || error.message
+        error.response?.data || error.message
       );
-      throw error;
+      throw new Error(
+        error.response?.data || "Error desconocido al crear ruta."
+      );
     }
   };
 
-  /**
-   * Actualiza una ruta (PUT /api/Rutas/{id})
-   */
+  /* ================================
+        PUT - Actualizar Ruta
+  ================================= */
   const updateRuta = async (id, rutaData) => {
     try {
       const dataToSend = { ...rutaData, idRuta: id };
       await axios.put(`${API_RUTAS_URL}/${id}`, dataToSend);
-      await getRutas();
       return true;
     } catch (error) {
       console.error(
         "ERROR (Actualizar Ruta):",
-        error.response?.data?.errors || error.message
+        error.response?.data || error.message
       );
-      throw error;
+      throw new Error(
+        error.response?.data || "Error desconocido al actualizar ruta."
+      );
     }
   };
 
-  /**
-   * Elimina una ruta (DELETE /api/Rutas/{id})
-   */
+  /* ================================
+        DELETE - Eliminar Ruta
+  ================================= */
   const deleteRuta = async (id) => {
     try {
       await axios.delete(`${API_RUTAS_URL}/${id}`);
-      await getRutas();
       return true;
     } catch (error) {
       console.error(
         "ERROR (Eliminar Ruta):",
-        error.response?.data?.errors || error.message
+        error.response?.data || error.message
       );
-      throw error;
+      throw new Error(
+        error.response?.data || "Error desconocido al eliminar ruta."
+      );
     }
   };
 
@@ -86,7 +113,9 @@ const RutasState = ({ children }) => {
     <RutasContext.Provider
       value={{
         rutas: state.rutas,
+        lugaresDisponibles: state.lugaresDisponibles,
         getRutas,
+        getLugares,
         createRuta,
         updateRuta,
         deleteRuta,

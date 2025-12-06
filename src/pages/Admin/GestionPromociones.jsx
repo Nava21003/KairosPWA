@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useReducer,
   createContext,
+  useRef,
 } from "react";
 import axios from "axios";
 import {
@@ -35,7 +36,25 @@ import {
   RefreshCw,
   Power,
   Image as ImageIcon,
+  Camera,
+  Award,
 } from "lucide-react";
+
+const API_BASE_URL = "http://localhost:5219";
+const API_PROMOCIONES = `${API_BASE_URL}/api/Promociones`;
+const API_LUGARES = `${API_BASE_URL}/api/Lugares`;
+const API_SOCIOS = `${API_BASE_URL}/api/SociosAfiliados`;
+
+const getImageUrl = (path) => {
+  if (!path) return "https://via.placeholder.com/150?text=Sin+Foto";
+
+  if (path.startsWith("data:image")) return path;
+
+  if (path.startsWith("http")) return path;
+
+  const cleanPath = path.replace(/\\/g, "/");
+  return `${API_BASE_URL}/${cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath}`;
+};
 
 const PromocionesContext = createContext();
 
@@ -86,10 +105,6 @@ const PromocionesReducer = (state, action) => {
       return state;
   }
 };
-
-const API_PROMOCIONES = "http://localhost:5219/api/Promociones";
-const API_LUGARES = "http://localhost:5219/api/Lugares";
-const API_SOCIOS = "http://localhost:5219/api/SociosAfiliados";
 
 const PromocionesState = ({ children }) => {
   const initialState = { promociones: [], lugares: [], socios: [] };
@@ -228,12 +243,15 @@ const PromocionModal = ({
   loading,
 }) => {
   const isEditing = promocion !== null;
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     titulo: "",
     descripcion: "",
     imagen: "",
     idLugar: "",
     idSocio: "",
+    puntosRequeridos: 0,
     fechaInicio: "",
     fechaFin: "",
     estatus: true,
@@ -249,6 +267,7 @@ const PromocionModal = ({
         imagen: promocion.imagen || "",
         idLugar: promocion.idLugar || "",
         idSocio: promocion.idSocio || "",
+        puntosRequeridos: promocion.puntosRequeridos || 0,
         fechaInicio: promocion.fechaInicio
           ? promocion.fechaInicio.split("T")[0]
           : "",
@@ -262,6 +281,7 @@ const PromocionModal = ({
         imagen: "",
         idLugar: "",
         idSocio: "",
+        puntosRequeridos: 0,
         fechaInicio: "",
         fechaFin: "",
         estatus: true,
@@ -276,6 +296,8 @@ const PromocionModal = ({
     if (!formData.idLugar) errors.idLugar = "Seleccione un lugar";
     if (!formData.fechaInicio) errors.fechaInicio = "Fecha inicio requerida";
     if (!formData.fechaFin) errors.fechaFin = "Fecha fin requerida";
+    if (formData.puntosRequeridos < 0)
+      errors.puntosRequeridos = "No puede ser negativo";
     else if (
       formData.fechaInicio &&
       formData.fechaFin &&
@@ -296,6 +318,28 @@ const PromocionModal = ({
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("La imagen es demasiado grande. Máximo 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          imagen: reader.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -303,6 +347,7 @@ const PromocionModal = ({
       ...formData,
       idLugar: parseInt(formData.idLugar),
       idSocio: formData.idSocio ? parseInt(formData.idSocio) : null,
+      puntosRequeridos: parseInt(formData.puntosRequeridos) || 0,
     };
     savePromocion(dataToSend, isEditing);
   };
@@ -332,37 +377,89 @@ const PromocionModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
-          <Row className="mb-3">
-            <Form.Group as={Col} md={6}>
-              <Form.Label className="fw-semibold">
-                <Tag size={16} className="me-1" /> Título *
-              </Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Ej. 2x1 en Cenas"
-                name="titulo"
-                value={formData.titulo}
-                onChange={handleChange}
-                isInvalid={!!formErrors.titulo}
+          {/* SECCIÓN IMAGEN */}
+          <div className="d-flex justify-content-center mb-4">
+            <div className="position-relative">
+              <div
+                style={{
+                  width: "140px",
+                  height: "140px",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                  border: `4px solid ${kairosTheme.light}`,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  backgroundColor: "#e9ecef",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {formData.imagen ? (
+                  <img
+                    src={getImageUrl(formData.imagen)}
+                    alt="Promo"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src =
+                        "https://via.placeholder.com/150?text=Error";
+                    }}
+                  />
+                ) : (
+                  <ImageIcon size={60} color="#adb5bd" />
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={triggerFileInput}
+                style={{
+                  position: "absolute",
+                  bottom: "-5px",
+                  right: "-5px",
+                  borderRadius: "50%",
+                  width: "40px",
+                  height: "40px",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: kairosTheme.primary,
+                  border: "none",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                }}
+              >
+                <Camera size={20} />
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleImageChange}
               />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.titulo}
-              </Form.Control.Feedback>
-            </Form.Group>
+            </div>
+          </div>
 
-            <Form.Group as={Col} md={6}>
-              <Form.Label className="fw-semibold">
-                <ImageIcon size={16} className="me-1" /> URL Imagen
-              </Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Ej. uploads/promo.jpg o https://..."
-                name="imagen"
-                value={formData.imagen}
-                onChange={handleChange}
-              />
-            </Form.Group>
-          </Row>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-semibold">
+              <Tag size={16} className="me-1" /> Título *
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ej. 2x1 en Cenas"
+              name="titulo"
+              value={formData.titulo}
+              onChange={handleChange}
+              isInvalid={!!formErrors.titulo}
+            />
+            <Form.Control.Feedback type="invalid">
+              {formErrors.titulo}
+            </Form.Control.Feedback>
+          </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label className="fw-semibold">
@@ -418,8 +515,27 @@ const PromocionModal = ({
               </Form.Select>
             </Form.Group>
           </Row>
+
+          {/* NUEVA FILA: PUNTOS, INICIO, FIN */}
           <Row className="mb-3">
-            <Form.Group as={Col} md={6}>
+            <Form.Group as={Col} md={4}>
+              <Form.Label className="fw-semibold">
+                <Award size={16} className="me-1" /> Puntos Requeridos
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                name="puntosRequeridos"
+                value={formData.puntosRequeridos}
+                onChange={handleChange}
+                isInvalid={!!formErrors.puntosRequeridos}
+              />
+              <Form.Control.Feedback type="invalid">
+                {formErrors.puntosRequeridos}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group as={Col} md={4}>
               <Form.Label className="fw-semibold">
                 <Calendar size={16} className="me-1" /> Inicio *
               </Form.Label>
@@ -434,7 +550,7 @@ const PromocionModal = ({
                 {formErrors.fechaInicio}
               </Form.Control.Feedback>
             </Form.Group>
-            <Form.Group as={Col} md={6}>
+            <Form.Group as={Col} md={4}>
               <Form.Label className="fw-semibold">
                 <Calendar size={16} className="me-1" /> Fin *
               </Form.Label>
@@ -450,6 +566,7 @@ const PromocionModal = ({
               </Form.Control.Feedback>
             </Form.Group>
           </Row>
+
           <Form.Group className="mb-3">
             <Form.Check
               type="switch"
@@ -560,6 +677,7 @@ const GestionPromocionesContent = () => {
         titulo: promocion.titulo,
         descripcion: promocion.descripcion,
         imagen: promocion.imagen,
+        puntosRequeridos: promocion.puntosRequeridos,
         fechaInicio: promocion.fechaInicio,
         fechaFin: promocion.fechaFin,
         estatus: !promocion.estatus,
@@ -866,6 +984,8 @@ const GestionPromocionesContent = () => {
                     <th className="p-3">Título</th>
                     <th className="p-3">Lugar</th>
                     <th className="p-3">Socio</th>
+                    {/* CAMBIO: Columna Puntos */}
+                    <th className="p-3 text-center">Puntos</th>
                     <th className="p-3">Vigencia</th>
                     <th className="p-3 text-center">Estado</th>
                     <th className="p-3 text-center">Acciones</th>
@@ -875,35 +995,31 @@ const GestionPromocionesContent = () => {
                   {filteredPromociones.map((p) => (
                     <tr key={p.idPromocion} style={{ transition: "0.2s" }}>
                       <td className="p-3 text-center">
-                        {p.imagen ? (
+                        <div
+                          style={{
+                            width: "50px",
+                            height: "50px",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            border: "1px solid #dee2e6",
+                            margin: "0 auto",
+                          }}
+                        >
                           <img
-                            src={p.imagen}
+                            src={getImageUrl(p.imagen)}
                             alt="promo"
                             style={{
-                              width: "50px",
-                              height: "50px",
+                              width: "100%",
+                              height: "100%",
                               objectFit: "cover",
-                              borderRadius: "8px",
-                              border: "1px solid #dee2e6",
+                            }}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "https://via.placeholder.com/150?text=IMG";
                             }}
                           />
-                        ) : (
-                          <div
-                            style={{
-                              width: "50px",
-                              height: "50px",
-                              borderRadius: "8px",
-                              backgroundColor: "#f1f3f5",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              margin: "0 auto",
-                              color: "#adb5bd",
-                            }}
-                          >
-                            <ImageIcon size={24} />
-                          </div>
-                        )}
+                        </div>
                       </td>
                       <td className="p-3">
                         <div className="fw-bold">{p.titulo}</div>
@@ -922,6 +1038,17 @@ const GestionPromocionesContent = () => {
                         ) : (
                           <span className="text-muted small">N/A</span>
                         )}
+                      </td>
+                      {/* CAMBIO: Celda Puntos */}
+                      <td className="p-3 text-center">
+                        <Badge
+                          bg="warning"
+                          text="dark"
+                          className="d-inline-flex align-items-center gap-1"
+                        >
+                          <Award size={14} />
+                          {p.puntosRequeridos || 0}
+                        </Badge>
                       </td>
                       <td className="p-3 small">
                         <div>{formatDateTime(p.fechaInicio)}</div>
@@ -952,12 +1079,16 @@ const GestionPromocionesContent = () => {
                             className="btn-action"
                             style={{
                               backgroundColor: p.estatus
-                                ? "white"
-                                : kairosTheme.success,
-                              borderColor: kairosTheme.success,
-                              color: p.estatus
-                                ? kairosTheme.secondary
+                                ? kairosTheme.success
                                 : "white",
+
+                              borderColor: p.estatus
+                                ? kairosTheme.success
+                                : kairosTheme.secondary,
+
+                              color: p.estatus
+                                ? "white"
+                                : kairosTheme.secondary,
                             }}
                           >
                             <Power size={16} />
@@ -990,7 +1121,7 @@ const GestionPromocionesContent = () => {
                   ))}
                   {filteredPromociones.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="text-center p-5 text-muted">
+                      <td colSpan="8" className="text-center p-5 text-muted">
                         No hay promociones registradas.
                       </td>
                     </tr>

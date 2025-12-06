@@ -24,6 +24,9 @@ import Contactanos from "../Home/Contactanos";
 import Faq from "../Home/FAQ";
 import AdminMensajes from "../Admin/AdminMensajes";
 import AdminFaq from "../Admin/AdminFaq";
+import SeccionReseñas from "../Home/SeccionReseñas";
+import GestionComentarios from "../Admin/GestionComentarios";
+import GestionGanancias from "../Admin/GestionGanancias";
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +58,10 @@ export const router = createBrowserRouter([
       {
         path: "/explorar",
         element: <Explorar />,
+      },
+      {
+        path: "/resenias",
+        element: <SeccionReseñas />,
       },
     ],
   },
@@ -122,14 +129,16 @@ export const router = createBrowserRouter([
         element: <AdminMensajes />,
       },
       {
+        path: "comentarios",
+        element: <GestionComentarios />,
+      },
+      {
         path: "faq",
         element: <AdminFaq />,
       },
       {
-        path: "configuracion",
-        element: (
-          <div className="p-5 text-center">Configuración en construcción</div>
-        ),
+        path: "ganancias",
+        element: <GestionGanancias />,
       },
     ],
   },

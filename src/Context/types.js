@@ -39,6 +39,7 @@ export const DELETE_LUGAR = 'DELETE_LUGAR';
 // Actividades
 export const GET_ACTIVIDADES_BY_USER = 'GET_ACTIVIDADES_BY_USER';
 export const CREATE_ACTIVIDAD = 'CREATE_ACTIVIDAD';
+export const GET_HISTORIAL_VISITAS = 'GET_HISTORIAL_VISITAS';
 
 // Notificaciones
 export const GET_NOTIFICACIONES_BY_USER = 'GET_NOTIFICACIONES_BY_USER';
@@ -92,3 +93,9 @@ export const GET_FAQS = 'GET_FAQS';
 export const CREATE_FAQ = 'CREATE_FAQ';
 export const UPDATE_FAQ = 'UPDATE_FAQ';
 export const DELETE_FAQ = 'DELETE_FAQ';
+
+// Módulo Reseñas
+export const GET_RESENAS = 'GET_RESENAS';
+export const CREATE_RESENA = 'CREATE_RESENA';
+export const UPDATE_RESENA = 'UPDATE_RESENA';
+export const DELETE_RESENA = 'DELETE_RESENA';

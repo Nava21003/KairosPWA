@@ -27,32 +27,23 @@ const PromocionesState = ({ children }) => {
    */
   const getPromociones = async () => {
     try {
-      console.log("🔍 Obteniendo promociones desde:", API_PROMOCIONES_URL);
       const res = await axios.get(API_PROMOCIONES_URL);
-      console.log("✅ Promociones obtenidas:", res.data);
-
       dispatch({
         type: GET_PROMOCIONES,
         payload: res.data,
       });
-
       return res.data;
     } catch (error) {
       console.error(
         "Error al obtener promociones:",
         error.response?.data || error.message
       );
-      dispatch({
-        type: GET_PROMOCIONES,
-        payload: [],
-      });
-      throw error;
+      dispatch({ type: GET_PROMOCIONES, payload: [] });
     }
   };
 
   /**
    * Crea una nueva promoción (POST /api/Promociones)
-   * @param {object} promocionData
    */
   const createPromocion = async (promocionData) => {
     try {
@@ -64,8 +55,8 @@ const PromocionesState = ({ children }) => {
       return response.data;
     } catch (error) {
       console.error(
-        "ERROR DETALLADO (Crear Promoción):",
-        error.response?.data?.errors || error.message
+        "Error creando promoción:",
+        error.response?.data || error.message
       );
       throw error;
     }
@@ -73,8 +64,6 @@ const PromocionesState = ({ children }) => {
 
   /**
    * Actualiza una promoción existente (PUT /api/Promociones/{id})
-   * @param {number} id
-   * @param {object} promocionData
    */
   const updatePromocion = async (id, promocionData) => {
     try {
@@ -87,8 +76,8 @@ const PromocionesState = ({ children }) => {
       return res.data;
     } catch (error) {
       console.error(
-        "ERROR DETALLADO (Actualizar Promoción):",
-        error.response?.data?.errors || error.message
+        "Error actualizando promoción:",
+        error.response?.data || error.message
       );
       throw error;
     }
@@ -96,7 +85,6 @@ const PromocionesState = ({ children }) => {
 
   /**
    * Elimina una promoción (DELETE /api/Promociones/{id})
-   * @param {number} id
    */
   const deletePromocion = async (id) => {
     try {
@@ -107,24 +95,18 @@ const PromocionesState = ({ children }) => {
       });
       return true;
     } catch (error) {
-      const errorMessage = error.response?.data?.errors || error.message;
       if (error.response && error.response.status === 409) {
-        console.error(
-          "ERROR DETALLADO (Eliminar Promoción): No se puede eliminar la promoción porque tiene registros asociados."
-        );
         throw new Error(
-          "No se puede eliminar la promoción porque tiene registros asociados."
+          "No se puede eliminar la promoción porque tiene registros de clics o asociados."
         );
       } else {
-        console.error("ERROR DETALLADO (Eliminar Promoción):", errorMessage);
         throw error;
       }
     }
   };
 
   /**
-   * Obtiene promociones por lugar (GET /api/Promociones/lugar/{idLugar})
-   * @param {number} idLugar
+   * Obtiene promociones por lugar
    */
   const getPromocionesByLugar = async (idLugar) => {
     try {
@@ -135,17 +117,12 @@ const PromocionesState = ({ children }) => {
       });
       return res.data;
     } catch (error) {
-      console.error(
-        "Error al obtener promociones por lugar:",
-        error.response?.data || error.message
-      );
-      throw error;
+      console.error(error);
     }
   };
 
   /**
-   * Obtiene promociones por socio (GET /api/Promociones/socio/{idSocio})
-   * @param {number} idSocio
+   * Obtiene promociones por socio
    */
   const getPromocionesBySocio = async (idSocio) => {
     try {
@@ -156,34 +133,29 @@ const PromocionesState = ({ children }) => {
       });
       return res.data;
     } catch (error) {
-      console.error(
-        "Error al obtener promociones por socio:",
-        error.response?.data || error.message
-      );
-      throw error;
+      console.error(error);
     }
   };
 
-  /**
-   * Registra un clic en una promoción (POST /api/Promociones/{id}/clic)
-   * @param {number} idPromocion
-   * @param {number} idUsuario
-   */
   const registrarClic = async (idPromocion, idUsuario) => {
     try {
+      const payload = {
+        idPromocion: parseInt(idPromocion),
+        idUsuario: idUsuario ? parseInt(idUsuario) : null,
+      };
+
       const response = await axios.post(
-        `${API_PROMOCIONES_URL}/${idPromocion}/clic`,
-        {
-          idUsuario: idUsuario,
-        }
+        `${API_PROMOCIONES_URL}/registrar-clic`,
+        payload
       );
+
+      console.log("💰 Ganancia registrada en BD:", response.data);
       return response.data;
     } catch (error) {
       console.error(
         "Error al registrar clic:",
         error.response?.data || error.message
       );
-      throw error;
     }
   };
 

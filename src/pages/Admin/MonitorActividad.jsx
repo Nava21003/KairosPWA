@@ -18,6 +18,8 @@ import {
   InputGroup,
   Form,
   Alert,
+  Tab,
+  Tabs,
 } from "react-bootstrap";
 import {
   Activity,
@@ -31,12 +33,16 @@ import {
   Ruler,
   Clock,
   MessageCircle,
+  Award,
+  Map,
+  TrendingUp,
 } from "lucide-react";
 
 const ActividadesContext = createContext();
 
 const GET_ACTIVIDADES_BY_USER = "GET_ACTIVIDADES_BY_USER";
 const GET_USERS_LIST = "GET_USERS_LIST";
+const GET_HISTORIAL_VISITAS = "GET_HISTORIAL_VISITAS";
 
 const extractData = (payload) => {
   if (payload && payload.$values) {
@@ -63,17 +69,28 @@ const ActividadesReducer = (state, action) => {
         users: Array.isArray(dataToUse) ? dataToUse : [],
       };
     }
+    // Nuevo Caso para el Historial
+    case GET_HISTORIAL_VISITAS: {
+      const dataToUse = extractData(payload);
+      return {
+        ...state,
+        historialVisitas: Array.isArray(dataToUse) ? dataToUse : [],
+      };
+    }
     default:
       return state;
   }
 };
 
-const API_ACTIVIDADES_URL = "http://localhost:5219/api/Actividades";
-const API_USUARIOS_URL = "http://localhost:5219/api/Usuarios";
+const API_BASE_URL = "http://localhost:5219";
+const API_ACTIVIDADES_URL = `${API_BASE_URL}/api/Actividades`;
+const API_USUARIOS_URL = `${API_BASE_URL}/api/Usuarios`;
+const API_LUGARES_URL = `${API_BASE_URL}/api/Lugares`;
 
 const ActividadesState = ({ children }) => {
   const initialState = {
     actividades: [],
+    historialVisitas: [],
     users: [],
   };
 
@@ -86,6 +103,15 @@ const ActividadesState = ({ children }) => {
     } catch (error) {
       console.error("Error al obtener actividades:", error);
       throw error;
+    }
+  };
+
+  const getHistorialVisitas = async (idUsuario) => {
+    try {
+      const res = await axios.get(`${API_LUGARES_URL}/historial/${idUsuario}`);
+      dispatch({ type: GET_HISTORIAL_VISITAS, payload: res.data });
+    } catch (error) {
+      console.error("Error al obtener historial de visitas:", error);
     }
   };
 
@@ -102,8 +128,10 @@ const ActividadesState = ({ children }) => {
     <ActividadesContext.Provider
       value={{
         actividades: state.actividades,
+        historialVisitas: state.historialVisitas,
         users: state.users,
         getActividadesByUsuario,
+        getHistorialVisitas,
         getUsers,
       }}
     >
@@ -112,6 +140,7 @@ const ActividadesState = ({ children }) => {
   );
 };
 
+// --- THEME ---
 const kairosTheme = {
   primary: "#4ecca3",
   secondary: "#6c757d",
@@ -123,14 +152,17 @@ const kairosTheme = {
   dark: "#2c3e50",
   white: "#ffffff",
   purple: "#6f42c1",
+  gold: "#f1c40f",
   bodyBg: "#f4f6f9",
 };
 
 const MonitorActividadContent = () => {
   const {
     actividades = [],
+    historialVisitas = [],
     users = [],
     getActividadesByUsuario,
+    getHistorialVisitas,
     getUsers,
   } = useContext(ActividadesContext);
 
@@ -138,7 +170,7 @@ const MonitorActividadContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
     getUsers();
@@ -152,18 +184,20 @@ const MonitorActividadContent = () => {
 
   useEffect(() => {
     if (currentUserId) {
-      loadActividades(currentUserId);
+      loadAllData(currentUserId);
     }
   }, [currentUserId]);
 
-  const loadActividades = async (userId) => {
+  const loadAllData = async (userId) => {
     setLoading({ data: true });
     setError(null);
     try {
-      await getActividadesByUsuario(userId);
-      setDataLoaded(true);
+      await Promise.all([
+        getActividadesByUsuario(userId),
+        getHistorialVisitas(userId),
+      ]);
     } catch (err) {
-      setError("No se pudieron cargar las actividades.");
+      setError("No se pudieron cargar los datos del usuario.");
     } finally {
       setLoading({ data: false });
     }
@@ -171,34 +205,41 @@ const MonitorActividadContent = () => {
 
   const handleRefresh = () => {
     getUsers();
-    if (currentUserId) loadActividades(currentUserId);
+    if (currentUserId) loadAllData(currentUserId);
   };
 
   const handleUserChange = (e) => {
     setCurrentUserId(parseInt(e.target.value));
   };
 
-  const filteredData = actividades.filter((item) => {
+  const filteredActividades = actividades.filter((item) => {
     const lugar = (item.idLugarNavigation?.nombre || "").toLowerCase();
     const comentarios = (item.comentarios || "").toLowerCase();
     const search = searchTerm.toLowerCase();
     return lugar.includes(search) || comentarios.includes(search);
   });
 
-  const totalActividades = filteredData.length;
-  const totalPasos = filteredData.reduce(
+  const totalActividades = filteredActividades.length;
+  const totalVisitasCheckIn = historialVisitas.length;
+
+  const totalPasos = filteredActividades.reduce(
     (acc, curr) => acc + (curr.pasos || 0),
     0
   );
-  const totalDistancia = filteredData.reduce(
+  const totalDistancia = filteredActividades.reduce(
     (acc, curr) => acc + (curr.distancia || 0),
+    0
+  );
+
+  const totalPuntosGanados = historialVisitas.reduce(
+    (acc, curr) => acc + (curr.puntosGanados || 0),
     0
   );
 
   const promedioCalificacion =
     totalActividades > 0
       ? (
-          filteredData.reduce(
+          filteredActividades.reduce(
             (acc, curr) => acc + (curr.calificacion || 0),
             0
           ) / totalActividades
@@ -226,13 +267,10 @@ const MonitorActividadContent = () => {
     });
   };
 
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return "N/A";
-    const diff = new Date(end) - new Date(start);
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+  const getImageUrl = (path) => {
+    if (!path) return "https://via.placeholder.com/300x150?text=Sin+Imagen";
+    if (path.startsWith("http")) return path;
+    return `${API_BASE_URL}/${path}`;
   };
 
   return (
@@ -248,8 +286,12 @@ const MonitorActividadContent = () => {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important; }
-        .table-row-hover { transition: all 0.2s ease; }
-        .table-row-hover:hover { background-color: rgba(78, 204, 163, 0.08) !important; }
+        .visit-card { overflow: hidden; border: none; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .visit-card-img-wrapper { height: 140px; overflow: hidden; position: relative; }
+        .visit-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .visit-card:hover .visit-card-img { transform: scale(1.1); }
+        .points-badge { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.95); padding: 4px 12px; border-radius: 20px; font-weight: bold; color: ${kairosTheme.warning}; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 4px; }
+        .nav-pills .nav-link.active { background-color: ${kairosTheme.primary} !important; }
       `}</style>
 
       <Container fluid className="p-4">
@@ -269,10 +311,10 @@ const MonitorActividadContent = () => {
                 <Activity size={40} className="me-3" />
                 <div>
                   <h1 className="mb-1 fw-bold" style={{ fontSize: "2rem" }}>
-                    Monitor de Actividad
+                    Dashboard del Explorador
                   </h1>
                   <p className="mb-0 opacity-90">
-                    Seguimiento de pasos, distancia y visitas a lugares.
+                    Visión 360° de actividad física, puntos y visitas.
                   </p>
                 </div>
               </div>
@@ -284,9 +326,6 @@ const MonitorActividadContent = () => {
                   style={{ minWidth: "250px", flex: 1 }}
                 >
                   <Users size={18} className="me-2 text-muted" />
-                  <span className="fw-bold text-muted me-2 small d-none d-lg-inline">
-                    Usuario:
-                  </span>
                   <Form.Select
                     value={currentUserId}
                     onChange={handleUserChange}
@@ -318,15 +357,13 @@ const MonitorActividadContent = () => {
                   style={{
                     backgroundColor: "rgba(255,255,255,0.2)",
                     border: "1px solid rgba(255,255,255,0.3)",
-                    color: "white",
-                    borderRadius: "12px",
-                    padding: "0.75rem",
                   }}
                   className="btn-action shadow-sm"
                 >
                   <RefreshCw
                     className={loading.data ? "spin-anim" : ""}
                     size={20}
+                    color="white"
                   />
                 </Button>
               </div>
@@ -337,9 +374,38 @@ const MonitorActividadContent = () => {
         {error && <Alert variant="danger">{error}</Alert>}
 
         <Row className="mb-4 g-3">
-          <Col md={3}>
+          <Col md={12} lg={3}>
             <Card
-              className="border-0 shadow-sm stat-card card-hover"
+              className="border-0 shadow-sm stat-card card-hover h-100"
+              style={{
+                borderRadius: "12px",
+                borderLeft: `5px solid ${kairosTheme.warning}`,
+              }}
+            >
+              <Card.Body>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h6 className="mb-0 text-muted fw-bold">Puntos Acumulados</h6>
+                  <div
+                    className="p-2 rounded-circle"
+                    style={{ backgroundColor: `${kairosTheme.warning}20` }}
+                  >
+                    <Award size={24} color={kairosTheme.warning} />
+                  </div>
+                </div>
+                <h2 className="mb-0 fw-bold text-dark">
+                  {totalPuntosGanados}{" "}
+                  <small className="fs-6 text-muted">pts</small>
+                </h2>
+                <small className="text-success fw-bold">
+                  <TrendingUp size={14} /> Nivel Explorador
+                </small>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          <Col md={4} lg={3}>
+            <Card
+              className="border-0 shadow-sm stat-card card-hover h-100"
               style={{ borderRadius: "12px" }}
             >
               <Card.Body>
@@ -350,7 +416,7 @@ const MonitorActividadContent = () => {
                   >
                     <Ruler size={24} color={kairosTheme.info} />
                   </div>
-                  <h6 className="mb-0 text-muted fw-bold">Distancia Total</h6>
+                  <h6 className="mb-0 text-muted fw-bold">Distancia</h6>
                 </div>
                 <h3 className="mb-0 fw-bold ms-1">
                   {totalDistancia.toFixed(2)}{" "}
@@ -359,9 +425,10 @@ const MonitorActividadContent = () => {
               </Card.Body>
             </Card>
           </Col>
-          <Col md={3}>
+
+          <Col md={4} lg={3}>
             <Card
-              className="border-0 shadow-sm stat-card card-hover"
+              className="border-0 shadow-sm stat-card card-hover h-100"
               style={{ borderRadius: "12px" }}
             >
               <Card.Body>
@@ -372,7 +439,7 @@ const MonitorActividadContent = () => {
                   >
                     <Footprints size={24} color={kairosTheme.primary} />
                   </div>
-                  <h6 className="mb-0 text-muted fw-bold">Total Pasos</h6>
+                  <h6 className="mb-0 text-muted fw-bold">Pasos Totales</h6>
                 </div>
                 <h3 className="mb-0 fw-bold ms-1">
                   {totalPasos.toLocaleString()}
@@ -380,33 +447,10 @@ const MonitorActividadContent = () => {
               </Card.Body>
             </Card>
           </Col>
-          <Col md={3}>
+
+          <Col md={4} lg={3}>
             <Card
-              className="border-0 shadow-sm stat-card card-hover"
-              style={{ borderRadius: "12px" }}
-            >
-              <Card.Body>
-                <div className="d-flex align-items-center mb-2">
-                  <div
-                    className="p-2 rounded-circle me-3"
-                    style={{ backgroundColor: `${kairosTheme.warning}20` }}
-                  >
-                    <Star size={24} color={kairosTheme.warning} />
-                  </div>
-                  <h6 className="mb-0 text-muted fw-bold">Calif. Promedio</h6>
-                </div>
-                <div className="d-flex align-items-baseline">
-                  <h3 className="mb-0 fw-bold ms-1">{promedioCalificacion}</h3>
-                  <div className="ms-2">
-                    {renderStars(Math.round(promedioCalificacion))}
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={3}>
-            <Card
-              className="border-0 shadow-sm stat-card card-hover"
+              className="border-0 shadow-sm stat-card card-hover h-100"
               style={{ borderRadius: "12px" }}
             >
               <Card.Body>
@@ -415,172 +459,238 @@ const MonitorActividadContent = () => {
                     className="p-2 rounded-circle me-3"
                     style={{ backgroundColor: `${kairosTheme.purple}20` }}
                   >
-                    <Activity size={24} color={kairosTheme.purple} />
+                    <Map size={24} color={kairosTheme.purple} />
                   </div>
-                  <h6 className="mb-0 text-muted fw-bold">Visitas</h6>
+                  <h6 className="mb-0 text-muted fw-bold">Check-ins Totales</h6>
                 </div>
-                <h3 className="mb-0 fw-bold ms-1">{totalActividades}</h3>
+                <h3 className="mb-0 fw-bold ms-1">
+                  {totalVisitasCheckIn}{" "}
+                  <small className="fs-6 text-muted">lugares</small>
+                </h3>
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
-        <Card className="border-0 shadow-sm" style={{ borderRadius: "12px" }}>
-          <Card.Header className="bg-white border-0 pt-4 px-4">
-            <InputGroup style={{ maxWidth: "400px" }}>
-              <InputGroup.Text className="bg-light border-end-0">
-                <Search size={18} className="text-muted" />
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
-                placeholder="Buscar lugar o comentario..."
-                className="bg-light border-start-0"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </InputGroup>
-          </Card.Header>
-          <Card.Body className="p-0">
-            <div className="table-responsive">
-              <Table
-                className="align-middle mb-0 table-hover"
-                style={{ minWidth: "900px" }}
-              >
-                <thead style={{ backgroundColor: kairosTheme.light }}>
-                  <tr>
-                    <th
-                      className="p-3 ps-4 text-secondary text-uppercase small"
-                      style={{ width: "200px" }}
-                    >
-                      Lugar Visitado
-                    </th>
-                    <th
-                      className="p-3 text-secondary text-uppercase small"
-                      style={{ width: "220px" }}
-                    >
-                      Horario y Duración
-                    </th>
-                    <th className="p-3 text-secondary text-uppercase small">
-                      Métricas Físicas
-                    </th>
-                    <th
-                      className="p-3 text-secondary text-uppercase small"
-                      style={{ width: "150px" }}
-                    >
-                      Calificación
-                    </th>
-                    <th className="p-3 text-secondary text-uppercase small">
-                      Comentarios
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading.data ? (
-                    <tr>
-                      <td colSpan="5" className="text-center p-5">
-                        <Spinner animation="border" variant="primary" />
-                      </td>
-                    </tr>
-                  ) : filteredData.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="text-center p-5 text-muted">
-                        {users.length === 0
-                          ? "Cargando usuarios..."
-                          : "No hay actividades registradas para este usuario."}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredData.map((item) => (
-                      <tr key={item.idActividad}>
-                        <td className="p-3 ps-4">
-                          <div className="d-flex align-items-center">
-                            <div className="p-2 rounded bg-light me-3 text-primary">
-                              <MapPin size={20} />
-                            </div>
-                            <div>
-                              <div className="fw-bold text-dark">
-                                {item.idLugarNavigation?.nombre ||
-                                  "Ubicación Desconocida"}
-                              </div>
-                              <small className="text-muted">
-                                ID: {item.idActividad}
-                              </small>
+        <Tabs
+          defaultActiveKey="dashboard"
+          id="admin-dashboard-tabs"
+          className="mb-4 custom-tabs border-0"
+          variant="pills"
+        >
+          <Tab
+            eventKey="dashboard"
+            title={
+              <span>
+                <MapPin size={16} className="me-2" />
+                Historial de Lugares (Visual)
+              </span>
+            }
+          >
+            {loading.data ? (
+              <div className="text-center p-5">
+                <Spinner animation="border" variant="primary" />
+              </div>
+            ) : (
+              <>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="fw-bold text-dark mb-0">
+                    Lugares Reclamados Recientemente
+                  </h5>
+                  <Badge
+                    bg="light"
+                    text="dark"
+                    className="border px-3 py-2 rounded-pill"
+                  >
+                    {historialVisitas.length} registros encontrados
+                  </Badge>
+                </div>
+
+                {historialVisitas.length === 0 ? (
+                  <Alert
+                    variant="light"
+                    className="text-center py-5 border-0 shadow-sm"
+                  >
+                    <MapPin size={48} className="text-muted mb-3 opacity-50" />
+                    <h5>Aún no hay visitas registradas</h5>
+                    <p className="text-muted">
+                      El usuario no ha reclamado puntos en ningún lugar.
+                    </p>
+                  </Alert>
+                ) : (
+                  <Row className="g-4">
+                    {historialVisitas.map((visita) => (
+                      <Col key={visita.idVisita} xs={12} md={6} lg={4} xl={3}>
+                        <Card className="visit-card h-100 bg-white card-hover">
+                          <div className="visit-card-img-wrapper">
+                            <Card.Img
+                              variant="top"
+                              src={getImageUrl(visita.imagenLugar)}
+                              className="visit-card-img"
+                              onError={(e) =>
+                                (e.target.src =
+                                  "https://via.placeholder.com/300x150?text=Kairos+Lugar")
+                              }
+                            />
+                            <div className="points-badge">
+                              <Award size={14} fill={kairosTheme.warning} />+
+                              {visita.puntosGanados} pts
                             </div>
                           </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="d-flex flex-column gap-1">
-                            <div className="text-muted small d-flex align-items-center">
-                              <Calendar size={14} className="me-1" />{" "}
-                              {formatDate(item.fechaInicio)}
+                          <Card.Body className="p-3">
+                            <div className="d-flex align-items-start justify-content-between mb-2">
+                              <Card.Title
+                                className="fw-bold fs-6 mb-0 text-dark text-truncate"
+                                title={visita.nombreLugar}
+                              >
+                                {visita.nombreLugar}
+                              </Card.Title>
                             </div>
-                            <Badge
-                              bg="light"
-                              text="dark"
-                              className="d-flex align-items-center w-auto border"
-                              style={{ width: "fit-content" }}
-                            >
-                              <Clock size={12} className="me-1" />
-                              {calculateDuration(
-                                item.fechaInicio,
-                                item.fechaFin
-                              )}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="d-flex gap-3">
-                            <div
-                              className="d-flex align-items-center"
-                              title="Pasos"
-                            >
-                              <Footprints
-                                size={16}
-                                className="me-1 text-success"
-                              />
-                              <span className="fw-bold">
-                                {item.pasos?.toLocaleString() || 0}
-                              </span>
+                            <div className="text-muted small d-flex align-items-center mb-2">
+                              <Calendar size={14} className="me-2" />
+                              {formatDate(visita.fechaVisita)}
                             </div>
-                            <div
-                              className="d-flex align-items-center"
-                              title="Distancia"
-                            >
-                              <Ruler size={16} className="me-1 text-info" />
-                              <span className="fw-bold">
-                                {item.distancia || 0} km
-                              </span>
+                            <div className="d-grid mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline-light"
+                                className="text-muted border py-1"
+                                disabled
+                              >
+                                ID Visita: #{visita.idVisita}
+                              </Button>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="d-flex">
-                            {renderStars(item.calificacion || 0)}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          {item.comentarios ? (
-                            <div className="d-flex text-muted small">
-                              <MessageCircle
-                                size={16}
-                                className="me-2 flex-shrink-0 mt-1"
-                              />
-                              <span className="fst-italic">
-                                "{item.comentarios}"
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted small">-</span>
-                          )}
-                        </td>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+              </>
+            )}
+          </Tab>
+
+          <Tab
+            eventKey="table"
+            title={
+              <span>
+                <Activity size={16} className="me-2" />
+                Reporte de Actividades (Tabla)
+              </span>
+            }
+          >
+            <Card
+              className="border-0 shadow-sm"
+              style={{ borderRadius: "12px" }}
+            >
+              <Card.Header className="bg-white border-0 pt-4 px-4 d-flex justify-content-between">
+                <h5 className="fw-bold mb-0">Detalle de Actividades Físicas</h5>
+                <InputGroup style={{ maxWidth: "300px" }} size="sm">
+                  <InputGroup.Text className="bg-light border-end-0">
+                    <Search size={16} className="text-muted" />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="text"
+                    placeholder="Filtrar por nombre..."
+                    className="bg-light border-start-0"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </InputGroup>
+              </Card.Header>
+              <Card.Body className="p-0">
+                <div className="table-responsive">
+                  <Table
+                    className="align-middle mb-0 table-hover"
+                    style={{ minWidth: "900px" }}
+                  >
+                    <thead style={{ backgroundColor: kairosTheme.light }}>
+                      <tr>
+                        <th className="p-3 ps-4 text-secondary text-uppercase small">
+                          Lugar Visitado
+                        </th>
+                        <th className="p-3 text-secondary text-uppercase small">
+                          Horario
+                        </th>
+                        <th className="p-3 text-secondary text-uppercase small">
+                          Métricas
+                        </th>
+                        <th className="p-3 text-secondary text-uppercase small">
+                          Calif.
+                        </th>
+                        <th className="p-3 text-secondary text-uppercase small">
+                          Comentarios
+                        </th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          </Card.Body>
-        </Card>
+                    </thead>
+                    <tbody>
+                      {loading.data ? (
+                        <tr>
+                          <td colSpan="5" className="text-center p-5">
+                            <Spinner animation="border" variant="primary" />
+                          </td>
+                        </tr>
+                      ) : filteredActividades.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan="5"
+                            className="text-center p-5 text-muted"
+                          >
+                            No hay actividades físicas registradas.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredActividades.map((item) => (
+                          <tr key={item.idActividad}>
+                            <td className="p-3 ps-4">
+                              <div className="d-flex align-items-center">
+                                <div className="p-2 rounded bg-light me-3 text-primary">
+                                  <MapPin size={20} />
+                                </div>
+                                <div>
+                                  <div className="fw-bold text-dark">
+                                    {item.idLugarNavigation?.nombre ||
+                                      "Desconocido"}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <small className="text-muted">
+                                <Calendar size={12} className="me-1" />{" "}
+                                {formatDate(item.fechaInicio)}
+                              </small>
+                            </td>
+                            <td className="p-3">
+                              <Badge
+                                bg="light"
+                                text="dark"
+                                className="me-2 border"
+                              >
+                                <Footprints size={12} /> {item.pasos || 0}
+                              </Badge>
+                              <Badge bg="light" text="dark" className="border">
+                                <Ruler size={12} /> {item.distancia || 0}km
+                              </Badge>
+                            </td>
+                            <td className="p-3">
+                              <div className="d-flex">
+                                {renderStars(item.calificacion || 0)}
+                              </div>
+                            </td>
+                            <td className="p-3 text-muted small fst-italic">
+                              {item.comentarios || "-"}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+              </Card.Body>
+            </Card>
+          </Tab>
+        </Tabs>
       </Container>
     </Container>
   );

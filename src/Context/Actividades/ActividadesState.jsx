@@ -2,19 +2,25 @@ import React, { useReducer } from "react";
 import axios from "axios";
 import ActividadesContext from "./ActividadesContext";
 import ActividadesReduce from "./ActividadesReduce";
-import { GET_ACTIVIDADES_BY_USER, CREATE_ACTIVIDAD } from "../types";
+import {
+  GET_ACTIVIDADES_BY_USER,
+  CREATE_ACTIVIDAD,
+  GET_HISTORIAL_VISITAS,
+} from "../types";
 
 const API_ACTIVIDADES_URL = "http://localhost:5219/api/Actividades";
+const API_LUGARES_URL = "http://localhost:5219/api/Lugares";
 
 const ActividadesState = ({ children }) => {
   const initialState = {
     actividades: [],
+    historialVisitas: [],
   };
 
   const [state, dispatch] = useReducer(ActividadesReduce, initialState);
 
   /**
-   * Obtiene actividades por ID de usuario (GET /api/Actividades/{idUsuario})
+   * Obtiene actividades (Reportes manuales) por ID de usuario
    */
   const getActividadesByUsuario = async (idUsuario) => {
     try {
@@ -26,12 +32,11 @@ const ActividadesState = ({ children }) => {
         "Error al obtener actividades:",
         error.response?.data || error.message
       );
-      throw error;
     }
   };
 
   /**
-   * Registra una nueva actividad (POST /api/Actividades)
+   * Registra una nueva actividad manual
    */
   const createActividad = async (actividadData) => {
     try {
@@ -47,12 +52,35 @@ const ActividadesState = ({ children }) => {
     }
   };
 
+  /**
+   * GET /api/Lugares/historial/{idUsuario}
+   */
+  const getHistorialVisitas = async (idUsuario) => {
+    try {
+      const res = await axios.get(`${API_LUGARES_URL}/historial/${idUsuario}`);
+
+      dispatch({
+        type: GET_HISTORIAL_VISITAS,
+        payload: res.data,
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error(
+        "Error al obtener historial de visitas:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
   return (
     <ActividadesContext.Provider
       value={{
         actividades: state.actividades,
+        historialVisitas: state.historialVisitas,
         getActividadesByUsuario,
         createActividad,
+        getHistorialVisitas,
       }}
     >
       {children}

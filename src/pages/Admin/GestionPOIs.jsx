@@ -120,13 +120,26 @@ const POIModal = ({ show, handleClose, savePOI, poi, lugares, loading }) => {
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
+  const validateForm = () => {
+    const errors = {};
+    const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+    if (!formData.idLugar) errors.idLugar = "Debes seleccionar un lugar";
+
+    if (!formData.etiqueta.trim()) {
+      errors.etiqueta = "La etiqueta es requerida";
+    } else if (!regexSoloLetras.test(formData.etiqueta)) {
+      errors.etiqueta =
+        "La etiqueta no puede llevar números ni caracteres especiales";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const errors = {};
-    if (!formData.idLugar) errors.idLugar = "Debes seleccionar un lugar";
-    if (!formData.etiqueta.trim()) errors.etiqueta = "La etiqueta es requerida";
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    if (!validateForm()) return;
 
     const dataToSend = {
       ...formData,
@@ -201,6 +214,11 @@ const POIModal = ({ show, handleClose, savePOI, poi, lugares, loading }) => {
               <Form.Control.Feedback type="invalid">
                 {formErrors.etiqueta}
               </Form.Control.Feedback>
+
+              {/* --- MODIFICACIÓN 2: Texto de ayuda --- */}
+              <Form.Text className="text-muted" style={{ fontSize: "0.85rem" }}>
+                Solo se permiten letras y espacios (sin números ni símbolos).
+              </Form.Text>
             </Form.Group>
             <Form.Group as={Col} md={4}>
               <Form.Label className="fw-semibold">
@@ -654,12 +672,16 @@ const GestionPOIsContent = () => {
                             className="btn-action"
                             style={{
                               backgroundColor: p.estatus
-                                ? "white"
-                                : kairosTheme.success,
-                              borderColor: kairosTheme.success,
-                              color: p.estatus
-                                ? kairosTheme.secondary
+                                ? kairosTheme.success
                                 : "white",
+
+                              borderColor: p.estatus
+                                ? kairosTheme.success
+                                : kairosTheme.secondary,
+
+                              color: p.estatus
+                                ? "white"
+                                : kairosTheme.secondary,
                             }}
                           >
                             <Power size={16} />

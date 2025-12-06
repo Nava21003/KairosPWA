@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useReducer,
   createContext,
+  useRef,
 } from "react";
 import axios from "axios";
 import {
@@ -40,13 +41,17 @@ import {
   Globe,
   AlignLeft,
   Image as ImageIcon,
+  Camera,
+  Award,
 } from "lucide-react";
 
 const API_BASE_URL = "http://localhost:5219";
 const API_LUGARES_URL = `${API_BASE_URL}/api/Lugares`;
 const API_CATEGORIAS_URL = `${API_BASE_URL}/api/Categorias`;
+
 const getImageUrl = (path) => {
   if (!path) return "https://via.placeholder.com/150?text=Sin+Foto";
+  if (path.startsWith("data:image")) return path;
   if (path.startsWith("http")) return path;
   return `${API_BASE_URL}/${path}`;
 };
@@ -239,6 +244,7 @@ const LugarModal = ({
   categorias,
 }) => {
   const isEditing = lugar !== null;
+  const fileInputRef = useRef(null);
 
   const initialFormData = {
     nombre: "",
@@ -249,6 +255,7 @@ const LugarModal = ({
     direccion: "",
     horario: "",
     imagen: "",
+    puntosOtorgados: 10,
     esPatrocinado: false,
     estatus: true,
   };
@@ -268,6 +275,7 @@ const LugarModal = ({
         direccion: lugar.direccion || "",
         horario: lugar.horario || "",
         imagen: lugar.imagen || "",
+        puntosOtorgados: lugar.puntosOtorgados ?? 10,
         esPatrocinado: lugar.esPatrocinado ?? false,
         estatus: lugar.estatus ?? true,
       });
@@ -279,10 +287,21 @@ const LugarModal = ({
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.nombre.trim()) errors.nombre = "El nombre es requerido";
+    const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+    if (!formData.nombre.trim()) {
+      errors.nombre = "El nombre es requerido";
+    } else if (!regexSoloLetras.test(formData.nombre)) {
+      errors.nombre =
+        "El nombre no puede llevar números ni caracteres especiales";
+    }
+
     if (!formData.direccion.trim())
       errors.direccion = "La dirección es requerida";
     if (!formData.idCategoria) errors.idCategoria = "Selecciona una categoría";
+
+    if (formData.puntosOtorgados < 0)
+      errors.puntosOtorgados = "No puede ser negativo";
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -298,6 +317,28 @@ const LugarModal = ({
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("La imagen es demasiado grande. Máximo 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          imagen: reader.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -307,6 +348,9 @@ const LugarModal = ({
       idCategoria: formData.idCategoria ? parseInt(formData.idCategoria) : null,
       latitud: formData.latitud ? parseFloat(formData.latitud) : null,
       longitud: formData.longitud ? parseFloat(formData.longitud) : null,
+      puntosOtorgados: formData.puntosOtorgados
+        ? parseInt(formData.puntosOtorgados)
+        : 0,
     };
 
     saveLugar(dataToSend, isEditing);
@@ -337,6 +381,72 @@ const LugarModal = ({
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
         <Form onSubmit={handleSubmit}>
+          <div className="d-flex justify-content-center mb-4">
+            <div className="position-relative">
+              <div
+                style={{
+                  width: "140px",
+                  height: "140px",
+                  borderRadius: "20px",
+                  overflow: "hidden",
+                  border: `4px solid ${kairosTheme.light}`,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  backgroundColor: "#e9ecef",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {formData.imagen ? (
+                  <img
+                    src={getImageUrl(formData.imagen)}
+                    alt="Lugar"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src =
+                        "https://via.placeholder.com/150?text=Error";
+                    }}
+                  />
+                ) : (
+                  <ImageIcon size={60} color="#adb5bd" />
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={triggerFileInput}
+                style={{
+                  position: "absolute",
+                  bottom: "-5px",
+                  right: "-5px",
+                  borderRadius: "50%",
+                  width: "40px",
+                  height: "40px",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: kairosTheme.primary,
+                  border: "none",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                }}
+              >
+                <Camera size={20} />
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </div>
+          </div>
+
           <Row className="mb-3">
             <Form.Group as={Col} md={8}>
               <Form.Label className="fw-semibold">
@@ -354,6 +464,10 @@ const LugarModal = ({
               <Form.Control.Feedback type="invalid">
                 {formErrors.nombre}
               </Form.Control.Feedback>
+
+              <Form.Text className="text-muted" style={{ fontSize: "0.85rem" }}>
+                Solo se permiten letras y espacios (sin números ni símbolos).
+              </Form.Text>
             </Form.Group>
 
             <Form.Group as={Col} md={4}>
@@ -380,7 +494,8 @@ const LugarModal = ({
           </Row>
 
           <Row className="mb-3">
-            <Form.Group as={Col} md={8}>
+            {/* Reduje el ancho de Dirección para meter Puntos */}
+            <Form.Group as={Col} md={6}>
               <Form.Label className="fw-semibold">
                 <Map size={16} className="me-1" /> Dirección *
               </Form.Label>
@@ -396,7 +511,8 @@ const LugarModal = ({
                 {formErrors.direccion}
               </Form.Control.Feedback>
             </Form.Group>
-            <Form.Group as={Col} md={4}>
+
+            <Form.Group as={Col} md={3}>
               <Form.Label className="fw-semibold">
                 <Clock size={16} className="me-1" /> Horario
               </Form.Label>
@@ -408,6 +524,28 @@ const LugarModal = ({
                 onChange={handleChange}
               />
             </Form.Group>
+
+            {/* --- NUEVO CAMPO: PUNTOS OTORGADOS --- */}
+            <Form.Group as={Col} md={3}>
+              <Form.Label className="fw-semibold">
+                <Award size={16} className="me-1" /> Puntos
+              </Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="number"
+                  min="0"
+                  placeholder="10"
+                  name="puntosOtorgados"
+                  value={formData.puntosOtorgados}
+                  onChange={handleChange}
+                  isInvalid={!!formErrors.puntosOtorgados}
+                />
+                <InputGroup.Text className="text-muted small">
+                  pts
+                </InputGroup.Text>
+              </InputGroup>
+            </Form.Group>
+            {/* ------------------------------------ */}
           </Row>
 
           <Row className="mb-3">
@@ -432,55 +570,6 @@ const LugarModal = ({
                 value={formData.longitud}
                 onChange={handleChange}
               />
-            </Form.Group>
-          </Row>
-
-          <Row className="mb-3">
-            <Form.Group as={Col} md={9}>
-              <Form.Label className="fw-semibold">
-                <ImageIcon size={16} className="me-1" /> URL Imagen
-              </Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="https://ejemplo.com/foto.jpg o uploads/foto.jpg"
-                name="imagen"
-                value={formData.imagen}
-                onChange={handleChange}
-              />
-              <Form.Text className="text-muted">
-                Pega la URL completa o la ruta relativa guardada en el servidor.
-              </Form.Text>
-            </Form.Group>
-            <Form.Group
-              as={Col}
-              md={3}
-              className="d-flex align-items-center justify-content-center"
-            >
-              <div
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                  border: "1px solid #dee2e6",
-                  backgroundColor: "#f8f9fa",
-                  marginTop: "10px",
-                }}
-              >
-                <img
-                  src={getImageUrl(formData.imagen)}
-                  alt="Previsualización"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://via.placeholder.com/150?text=Error";
-                  }}
-                />
-              </div>
             </Form.Group>
           </Row>
 
@@ -662,6 +751,7 @@ const GestionLugaresContent = () => {
         direccion: lugar.direccion,
         horario: lugar.horario,
         imagen: lugar.imagen,
+        puntosOtorgados: lugar.puntosOtorgados,
         esPatrocinado: lugar.esPatrocinado,
         estatus: nuevoEstatus,
       };
@@ -784,7 +874,8 @@ const GestionLugaresContent = () => {
                     Gestión de Lugares
                   </h1>
                   <p className="mb-0 opacity-90">
-                    Administra los puntos de interés, fotos y detalles.
+                    Administra los puntos de interés, fotos, puntos otorgados y
+                    detalles.
                   </p>
                 </div>
               </div>
@@ -818,7 +909,7 @@ const GestionLugaresContent = () => {
                   }}
                   className="btn-action"
                 >
-                  <Plus className="me-2" size={20} /> Nuevo Lugar
+                  <Plus className="me-2" size={20} /> Nueva Lugar
                 </Button>
               </div>
             </Col>
@@ -846,6 +937,7 @@ const GestionLugaresContent = () => {
           </Alert>
         )}
 
+        {/* STATS CARDS */}
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -933,6 +1025,7 @@ const GestionLugaresContent = () => {
           </Col>
         </Row>
 
+        {/* FILTERS CARD */}
         <Card
           className="border-0 shadow-sm mb-4 card-hover"
           style={{ borderRadius: "12px" }}
@@ -1027,23 +1120,20 @@ const GestionLugaresContent = () => {
                       <MapPin size={16} className="me-2" /> Lugar
                     </div>
                   </th>
-                  <th className="p-3">
-                    <div className="d-flex align-items-center">
-                      <AlignLeft size={16} className="me-2" /> Descripción
+                  <th className="p-3">Categoría</th>
+                  {/* --- NUEVA COLUMNA PUNTOS --- */}
+                  <th className="p-3 text-center">
+                    <div className="d-flex align-items-center justify-content-center">
+                      <Award size={16} className="me-2" /> Puntos
                     </div>
                   </th>
-                  <th className="p-3">Categoría</th>
+                  {/* --------------------------- */}
                   <th className="p-3">
                     <div className="d-flex align-items-center">
                       <Clock size={16} className="me-2" /> Horario
                     </div>
                   </th>
                   <th className="p-3">Ubicación</th>
-                  <th className="p-3">
-                    <div className="d-flex align-items-center">
-                      <Globe size={16} className="me-2" /> Coordenadas
-                    </div>
-                  </th>
                   <th className="p-3 text-center">Patrocinado</th>
                   <th className="p-3 text-center">Estado</th>
                   <th className="p-3 text-center">Acciones</th>
@@ -1086,18 +1176,11 @@ const GestionLugaresContent = () => {
                     </td>
                     <td className="p-3">
                       <div className="fw-bold">{l.nombre}</div>
-                    </td>
-                    <td className="p-3" style={{ maxWidth: "200px" }}>
                       <div
-                        className="text-truncate"
-                        title={l.descripcion || "Sin descripción"}
-                        style={{ color: "#666" }}
+                        className="text-truncate small text-muted"
+                        style={{ maxWidth: "150px" }}
                       >
-                        {l.descripcion || (
-                          <span className="fst-italic text-muted">
-                            - Sin descripción -
-                          </span>
-                        )}
+                        {l.descripcion}
                       </div>
                     </td>
                     <td className="p-3">
@@ -1106,6 +1189,20 @@ const GestionLugaresContent = () => {
                           `ID: ${l.idCategoria}`}
                       </Badge>
                     </td>
+
+                    {/* --- CELDA DE PUNTOS --- */}
+                    <td className="p-3 text-center">
+                      <Badge
+                        bg="warning"
+                        text="dark"
+                        className="d-inline-flex align-items-center"
+                      >
+                        <Award size={12} className="me-1" />+
+                        {l.puntosOtorgados || 10} pts
+                      </Badge>
+                    </td>
+                    {/* ----------------------- */}
+
                     <td className="p-3">
                       <small className="text-muted font-monospace">
                         {l.horario || "N/A"}
@@ -1118,17 +1215,6 @@ const GestionLugaresContent = () => {
                         title={l.direccion}
                       >
                         {l.direccion}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div style={{ fontSize: "0.85rem" }}>
-                        <div className="d-flex align-items-center text-muted">
-                          <span className="fw-bold me-1">Lat:</span> {l.latitud}
-                        </div>
-                        <div className="d-flex align-items-center text-muted">
-                          <span className="fw-bold me-1">Lon:</span>{" "}
-                          {l.longitud}
-                        </div>
                       </div>
                     </td>
                     <td className="p-3 text-center">
@@ -1163,10 +1249,16 @@ const GestionLugaresContent = () => {
                           className="btn-action"
                           style={{
                             backgroundColor: l.estatus
-                              ? "white"
-                              : kairosTheme.success,
-                            borderColor: kairosTheme.success,
-                            color: l.estatus ? kairosTheme.secondary : "white",
+                              ? kairosTheme.success
+                              : kairosTheme.white,
+
+                            borderColor: l.estatus
+                              ? kairosTheme.success
+                              : kairosTheme.secondary,
+
+                            color: l.estatus
+                              ? kairosTheme.white
+                              : kairosTheme.secondary,
                           }}
                           title={
                             l.estatus ? "Desactivar Lugar" : "Activar Lugar"

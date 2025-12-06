@@ -84,6 +84,13 @@ const MiNavbar = () => {
               >
                 <i className="bi bi-question-circle me-2"></i> FAQ
               </CustomNavItem>
+
+              <CustomNavItem
+                to="/resenias"
+                className="nav-link-custom px-3 py-2 mx-1"
+              >
+                <i className="bi bi-star me-2"></i> Reseñas
+              </CustomNavItem>
             </Nav>
 
             <Nav className="ms-auto align-items-lg-center">

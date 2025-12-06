@@ -1,14 +1,7 @@
 import React, { useState, useContext } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  Button,
-  Alert,
-  Spinner,
-} from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import MensajesContext from "../../Context/Mensajes/MensajesContext";
+import Swal from "sweetalert2";
 
 const Contactanos = () => {
   const { createMensaje } = useContext(MensajesContext);
@@ -19,38 +12,26 @@ const Contactanos = () => {
     mensaje: "",
   });
 
-  const [uiState, setUiState] = useState({
-    loading: false,
-    success: false,
-    error: false,
-    errorMessage: "",
-  });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (uiState.success || uiState.error) {
-      setUiState({ ...uiState, success: false, error: false });
-    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.nombre || !formData.email || !formData.mensaje) {
-      setUiState({
-        ...uiState,
-        error: true,
-        errorMessage: "Por favor completa los campos obligatorios.",
+      Swal.fire({
+        icon: "warning",
+        title: "Campos incompletos",
+        text: "Por favor completa los campos obligatorios.",
+        confirmButtonColor: "#1e4d2b",
       });
       return;
     }
 
-    setUiState({
-      loading: true,
-      success: false,
-      error: false,
-      errorMessage: "",
-    });
+    setLoading(true);
 
     try {
       const datosParaEnviar = {
@@ -62,30 +43,35 @@ const Contactanos = () => {
 
       await createMensaje(datosParaEnviar);
 
-      setUiState({
-        loading: false,
-        success: true,
-        error: false,
-        errorMessage: "",
-      });
+      setLoading(false);
       setFormData({ nombre: "", email: "", asunto: "", mensaje: "" });
+
+      Swal.fire({
+        icon: "success",
+        title: "¡Mensaje Enviado!",
+        text: "Gracias por comunicarte con soporte. Estaremos en contacto contigo en menos de 24 horas.",
+        confirmButtonColor: "#1e4d2b",
+        confirmButtonText: "Entendido",
+        timer: 5000,
+        timerProgressBar: true,
+      });
     } catch (error) {
       console.error("Error al enviar formulario:", error);
+      setLoading(false);
 
       let msg = "Hubo un problema al enviar tu mensaje. Inténtalo de nuevo.";
 
       if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-        msg =
-          "No se puede conectar con el servidor. Verifica que tu API esté corriendo en el puerto 5219.";
+        msg = "No se puede conectar con el servidor.";
       } else if (error.response && error.response.data) {
-        msg = `Error del servidor: ${JSON.stringify(error.response.data)}`;
+        msg = `Error: ${JSON.stringify(error.response.data)}`;
       }
 
-      setUiState({
-        loading: false,
-        success: false,
-        error: true,
-        errorMessage: msg,
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: msg,
+        confirmButtonColor: "#d33",
       });
     }
   };
@@ -178,20 +164,7 @@ const Contactanos = () => {
                   </p>
                 </div>
 
-                {uiState.success && (
-                  <Alert variant="success" className="mb-3 animate-fade-in">
-                    <i className="bi bi-check-circle-fill me-2"></i>
-                    ¡Mensaje enviado con éxito! Nos pondremos en contacto
-                    pronto.
-                  </Alert>
-                )}
-
-                {uiState.error && (
-                  <Alert variant="danger" className="mb-3 animate-fade-in">
-                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                    {uiState.errorMessage}
-                  </Alert>
-                )}
+                {/* Se eliminaron las Alerts de Bootstrap aquí */}
 
                 <Form onSubmit={handleSubmit}>
                   <Row className="g-3">
@@ -208,7 +181,7 @@ const Contactanos = () => {
                           className="custom-input"
                           value={formData.nombre}
                           onChange={handleChange}
-                          disabled={uiState.loading}
+                          disabled={loading}
                         />
                       </Form.Group>
                     </Col>
@@ -226,7 +199,7 @@ const Contactanos = () => {
                           className="custom-input"
                           value={formData.email}
                           onChange={handleChange}
-                          disabled={uiState.loading}
+                          disabled={loading}
                         />
                       </Form.Group>
                     </Col>
@@ -241,7 +214,7 @@ const Contactanos = () => {
                           name="asunto"
                           value={formData.asunto}
                           onChange={handleChange}
-                          disabled={uiState.loading}
+                          disabled={loading}
                         >
                           <option value="">Selecciona un tema</option>
                           <option value="soporte">Soporte Técnico</option>
@@ -266,7 +239,7 @@ const Contactanos = () => {
                           className="custom-input"
                           value={formData.mensaje}
                           onChange={handleChange}
-                          disabled={uiState.loading}
+                          disabled={loading}
                         />
                       </Form.Group>
                     </Col>
@@ -275,9 +248,9 @@ const Contactanos = () => {
                       <Button
                         type="submit"
                         className="w-100 btn-submit-custom"
-                        disabled={uiState.loading}
+                        disabled={loading}
                       >
-                        {uiState.loading ? (
+                        {loading ? (
                           <>
                             <Spinner
                               as="span"
@@ -306,7 +279,7 @@ const Contactanos = () => {
       </section>
 
       <style>{`
-        /* === VARIABLES (Coinciden con Home) === */
+        /* === VARIABLES === */
         :root {
           --color-primary: #1e4d2b;
           --color-secondary: #2d7a3e;
@@ -318,7 +291,7 @@ const Contactanos = () => {
         .contact-section {
           background: #0a1f0f;
           min-height: 100vh;
-          font-family: 'Inter', sans-serif; /* Asegúrate de tener la fuente o usa la del sistema */
+          font-family: 'Inter', sans-serif;
         }
 
         /* === FONDO ANIMADO === */

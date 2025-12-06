@@ -1,4 +1,8 @@
-import { GET_ACTIVIDADES_BY_USER, CREATE_ACTIVIDAD } from "../types";
+import {
+    GET_ACTIVIDADES_BY_USER,
+    CREATE_ACTIVIDAD,
+    GET_HISTORIAL_VISITAS
+} from "../types";
 
 const extractData = (payload) => {
     if (payload && payload.$values) {
@@ -18,12 +22,21 @@ export default (state, action) => {
                 actividades: Array.isArray(dataToUse) ? dataToUse : []
             };
         }
+
         case CREATE_ACTIVIDAD: {
             return {
                 ...state,
                 actividades: [dataToUse, ...state.actividades]
             };
         }
+
+        case GET_HISTORIAL_VISITAS: {
+            return {
+                ...state,
+                historialVisitas: Array.isArray(dataToUse) ? dataToUse : []
+            };
+        }
+
         default:
             return state;
     }

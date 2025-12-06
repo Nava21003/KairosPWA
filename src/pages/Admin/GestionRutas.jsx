@@ -21,6 +21,8 @@ import {
   Alert,
   Nav,
   Tab,
+  OverlayTrigger,
+  Tooltip,
 } from "react-bootstrap";
 import {
   Plus,
@@ -33,14 +35,17 @@ import {
   Search,
   RefreshCw,
   Power,
-  Map,
+  Map as MapIcon,
   Navigation,
   User,
-  Calendar,
   AlignLeft,
   Route,
   MapPin,
   Globe,
+  ListOrdered,
+  MoveUp,
+  MoveDown,
+  Info,
 } from "lucide-react";
 
 const RutasContext = createContext();
@@ -52,29 +57,38 @@ const UPDATE_RUTA = "UPDATE_RUTA";
 const DELETE_RUTA = "DELETE_RUTA";
 
 const extractData = (payload) => {
-  if (payload && payload.$values) {
+  if (!payload) return [];
+  if (payload.$values) {
     return payload.$values;
   }
-  return payload;
+  return Array.isArray(payload) ? payload : [];
+};
+
+// Helper para formatear errores
+const formatError = (error) => {
+  if (error.response && error.response.data) {
+    const data = error.response.data;
+    if (data.errors) {
+      return Object.values(data.errors).flat().join(", ");
+    }
+    if (typeof data === "object") {
+      return data.title || data.message || JSON.stringify(data);
+    }
+    return data;
+  }
+  return error.message || "Error desconocido";
 };
 
 const RutasReducer = (state, action) => {
   const { payload, type } = action;
-
   switch (type) {
     case GET_RUTAS: {
       const data = extractData(payload);
-      return {
-        ...state,
-        rutas: Array.isArray(data) ? data : [],
-      };
+      return { ...state, rutas: data };
     }
     case GET_LUGARES_PARA_RUTAS: {
       const data = extractData(payload);
-      return {
-        ...state,
-        lugaresDisponibles: Array.isArray(data) ? data : [],
-      };
+      return { ...state, lugaresDisponibles: data };
     }
     case CREATE_RUTA:
     case UPDATE_RUTA:
@@ -108,7 +122,6 @@ const RutasState = ({ children }) => {
       dispatch({ type: GET_RUTAS, payload: res.data });
     } catch (error) {
       console.error("Error al obtener rutas:", error);
-      throw error;
     }
   };
 
@@ -117,7 +130,7 @@ const RutasState = ({ children }) => {
       const res = await axios.get(API_LUGARES_URL);
       dispatch({ type: GET_LUGARES_PARA_RUTAS, payload: res.data });
     } catch (error) {
-      console.error("Error al obtener lugares para rutas:", error);
+      console.error("Error al obtener lugares:", error);
     }
   };
 
@@ -187,13 +200,11 @@ const kairosTheme = {
 
 const MessageBox = ({ message }) => {
   if (!message) return null;
-
   const colorMap = {
     success: kairosTheme.success,
     danger: kairosTheme.danger,
     info: kairosTheme.info,
   };
-
   return (
     <div
       style={{
@@ -226,8 +237,10 @@ const MessageBox = ({ message }) => {
 
 const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
   const isEditing = ruta !== null;
-
   const [modoDefinicion, setModoDefinicion] = useState("lugares");
+  const [activeTab, setActiveTab] = useState("general");
+  const [intermediateStops, setIntermediateStops] = useState([]);
+  const [newStopId, setNewStopId] = useState("");
 
   const initialFormData = {
     nombre: "",
@@ -257,6 +270,7 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
         modoInicial = "coordenadas";
       }
       setModoDefinicion(modoInicial);
+      setActiveTab("general");
 
       setFormData({
         idRuta: ruta.idRuta,
@@ -272,28 +286,74 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
         idLugarInicio: ruta.idLugarInicio || "",
         idLugarFin: ruta.idLugarFin || "",
       });
+
+      const rawStops = extractData(ruta.rutasLugares);
+      const stops = rawStops
+        .map((rl) => {
+          let nombreLugar = "Lugar Desconocido";
+          if (rl.idLugarNavigation?.nombre) {
+            nombreLugar = rl.idLugarNavigation.nombre;
+          } else {
+            const found = lugares.find((l) => l.idLugar === rl.idLugar);
+            if (found) nombreLugar = found.nombre;
+          }
+          return {
+            idLugar: rl.idLugar,
+            orden: rl.orden,
+            nombreLugar: nombreLugar,
+          };
+        })
+        .sort((a, b) => a.orden - b.orden);
+
+      setIntermediateStops(stops);
     } else if (!show) {
       setFormData(initialFormData);
       setFormErrors({});
       setModoDefinicion("lugares");
+      setActiveTab("general");
+      setIntermediateStops([]);
+      setNewStopId("");
     }
-  }, [ruta, show]);
+  }, [ruta, show, lugares]);
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.nombre.trim()) errors.nombre = "El nombre es requerido";
+    const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+    if (!formData.nombre.trim()) {
+      errors.nombre = "El nombre es requerido";
+    } else if (!regexSoloLetras.test(formData.nombre)) {
+      errors.nombre =
+        "El nombre no puede llevar números ni caracteres especiales";
+    }
 
     if (modoDefinicion === "coordenadas") {
-      if (!formData.latitudInicio || !formData.longitudInicio) {
+      if (!formData.latitudInicio || !formData.longitudInicio)
         errors.coordenadasInicio = "Latitud y Longitud de inicio requeridas";
-      }
-      if (!formData.latitudFin || !formData.longitudFin) {
+      if (!formData.latitudFin || !formData.longitudFin)
         errors.coordenadasFin = "Latitud y Longitud de fin requeridas";
-      }
     } else {
       if (!formData.idLugarInicio)
         errors.idLugarInicio = "Selecciona lugar de inicio";
       if (!formData.idLugarFin) errors.idLugarFin = "Selecciona lugar de fin";
+    }
+
+    if (modoDefinicion === "lugares") {
+      const inicioId = parseInt(formData.idLugarInicio);
+      const finId = parseInt(formData.idLugarFin);
+      const inicioInStops = intermediateStops.some(
+        (s) => s.idLugar === inicioId
+      );
+      const finInStops = intermediateStops.some((s) => s.idLugar === finId);
+
+      if (inicioInStops)
+        errors.idLugarInicio =
+          "El lugar de inicio no puede ser una parada intermedia.";
+      if (finInStops)
+        errors.idLugarFin =
+          "El lugar de destino no puede ser una parada intermedia.";
+      if (inicioId === finId && inicioId)
+        errors.idLugarFin = "El inicio y el fin no pueden ser el mismo lugar.";
     }
 
     setFormErrors(errors);
@@ -303,7 +363,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
-
     if (name.includes("latitud") || name.includes("longitud")) {
       setFormErrors((prev) => ({
         ...prev,
@@ -311,7 +370,6 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
         coordenadasFin: "",
       }));
     }
-
     let newValue = value;
     if (type === "checkbox") {
       if (name === "estatusBool") {
@@ -323,42 +381,113 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
       }
       newValue = checked;
     }
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
+  };
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+  const addStop = () => {
+    const lugarId = parseInt(newStopId);
+    if (!lugarId) return;
+
+    const isDuplicate = intermediateStops.some((s) => s.idLugar === lugarId);
+    if (isDuplicate) return alert("Este lugar ya fue agregado como parada.");
+
+    if (
+      modoDefinicion === "lugares" &&
+      (lugarId === parseInt(formData.idLugarInicio) ||
+        lugarId === parseInt(formData.idLugarFin))
+    )
+      return alert("Este lugar ya es inicio o destino.");
+
+    const lugar = lugares.find((l) => l.idLugar === lugarId);
+    if (!lugar) return;
+
+    const newStop = {
+      idLugar: lugarId,
+      nombreLugar: lugar.nombre,
+      orden: intermediateStops.length + 1,
+    };
+
+    setIntermediateStops((prev) =>
+      [...prev, newStop].map((stop, index) => ({
+        ...stop,
+        orden: index + 1,
+      }))
+    );
+    setNewStopId("");
+  };
+
+  const removeStop = (idLugarToRemove) => {
+    setIntermediateStops((prev) =>
+      prev
+        .filter((s) => s.idLugar !== idLugarToRemove)
+        .map((stop, index) => ({ ...stop, orden: index + 1 }))
+    );
+  };
+
+  const updateStopOrder = (index, direction) => {
+    setIntermediateStops((prev) => {
+      const stops = [...prev];
+      const newIndex = index + (direction === "up" ? -1 : 1);
+      if (newIndex >= 0 && newIndex < stops.length) {
+        [stops[index], stops[newIndex]] = [stops[newIndex], stops[index]];
+        return stops.map((stop, i) => ({ ...stop, orden: i + 1 }));
+      }
+      return stops;
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setActiveTab("general");
+      return;
+    }
+
+    const parseNumberOrNull = (val) => {
+      if (val === "" || val === null || val === undefined) return null;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? null : parsed;
+    };
+    const parseIntOrNull = (val) => {
+      if (val === "" || val === null || val === undefined) return null;
+      const parsed = parseInt(val, 10);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    const rutasLugares = intermediateStops.map((s) => ({
+      idLugar: s.idLugar,
+      orden: s.orden,
+    }));
 
     const dataToSend = {
       ...formData,
-      idUsuario: formData.idUsuario ? parseInt(formData.idUsuario) : null,
-
+      idRuta: isEditing ? formData.idRuta : 0,
+      idUsuario: parseIntOrNull(formData.idUsuario),
       latitudInicio:
         modoDefinicion === "coordenadas"
-          ? parseFloat(formData.latitudInicio)
+          ? parseNumberOrNull(formData.latitudInicio)
           : null,
       longitudInicio:
         modoDefinicion === "coordenadas"
-          ? parseFloat(formData.longitudInicio)
+          ? parseNumberOrNull(formData.longitudInicio)
           : null,
       latitudFin:
         modoDefinicion === "coordenadas"
-          ? parseFloat(formData.latitudFin)
+          ? parseNumberOrNull(formData.latitudFin)
           : null,
       longitudFin:
         modoDefinicion === "coordenadas"
-          ? parseFloat(formData.longitudFin)
+          ? parseNumberOrNull(formData.longitudFin)
           : null,
-
       idLugarInicio:
-        modoDefinicion === "lugares" ? parseInt(formData.idLugarInicio) : null,
+        modoDefinicion === "lugares"
+          ? parseIntOrNull(formData.idLugarInicio)
+          : null,
       idLugarFin:
-        modoDefinicion === "lugares" ? parseInt(formData.idLugarFin) : null,
+        modoDefinicion === "lugares"
+          ? parseIntOrNull(formData.idLugarFin)
+          : null,
+      rutasLugares: rutasLugares,
     };
 
     saveRuta(dataToSend, isEditing);
@@ -391,227 +520,389 @@ const RutaModal = ({ show, handleClose, saveRuta, ruta, loading, lugares }) => {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: kairosTheme.white }}>
-        <Form onSubmit={handleSubmit}>
-          <h6 className="text-muted fw-bold mb-3">Datos Generales</h6>
-          <Row className="mb-3">
-            <Form.Group as={Col} md={8}>
-              <Form.Label className="fw-semibold">
-                <Navigation size={16} className="me-1" /> Nombre *
-              </Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Ej. Ruta Gastronómica"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                isInvalid={!!formErrors.nombre}
-                required
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.nombre}
-              </Form.Control.Feedback>
-            </Form.Group>
-            <Form.Group as={Col} md={4}>
-              <Form.Label className="fw-semibold">
-                <User size={16} className="me-1" /> ID Usuario (Opcional)
-              </Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Sin asignar"
-                name="idUsuario"
-                value={formData.idUsuario}
-                onChange={handleChange}
-              />
-            </Form.Group>
-          </Row>
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-semibold">
-              <AlignLeft size={16} className="me-1" /> Descripción
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              name="descripcion"
-              value={formData.descripcion}
-              onChange={handleChange}
-            />
-          </Form.Group>
-
-          <hr className="my-4" />
-          <h6 className="text-muted fw-bold mb-3">Definición de Trayecto</h6>
-
-          <Nav
-            variant="pills"
-            className="mb-3 justify-content-center"
-            activeKey={modoDefinicion}
-            onSelect={(k) => setModoDefinicion(k)}
-          >
+        <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
+          <Nav variant="tabs" className="mb-4">
             <Nav.Item>
-              <Nav.Link
-                eventKey="lugares"
-                style={{
-                  cursor: "pointer",
-                  backgroundColor:
-                    modoDefinicion === "lugares" ? kairosTheme.primary : "",
-                }}
-              >
-                <MapPin size={16} className="me-2" /> Por Lugares
+              <Nav.Link eventKey="general" style={{ cursor: "pointer" }}>
+                <Route size={16} className="me-1" /> General
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link
-                eventKey="coordenadas"
-                style={{
-                  cursor: "pointer",
-                  backgroundColor:
-                    modoDefinicion === "coordenadas" ? kairosTheme.primary : "",
-                }}
-              >
-                <Globe size={16} className="me-2" /> Por Coordenadas
+              <Nav.Link eventKey="paradas" style={{ cursor: "pointer" }}>
+                <ListOrdered size={16} className="me-1" /> Paradas Intermedias (
+                {intermediateStops.length})
               </Nav.Link>
             </Nav.Item>
           </Nav>
+          <Form onSubmit={handleSubmit}>
+            <Tab.Content>
+              <Tab.Pane eventKey="general">
+                <h6 className="text-muted fw-bold mb-3">Datos Generales</h6>
+                <Row className="mb-3">
+                  <Form.Group as={Col} md={8}>
+                    <Form.Label className="fw-semibold">
+                      <Navigation size={16} className="me-1" /> Nombre *
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Ej. Ruta Gastronómica"
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={handleChange}
+                      isInvalid={!!formErrors.nombre}
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {formErrors.nombre}
+                    </Form.Control.Feedback>
 
-          <div className="p-3 border rounded bg-light">
-            {modoDefinicion === "lugares" ? (
-              <Row>
-                <Col md={6}>
-                  <Form.Label className="fw-semibold">
-                    Lugar de Inicio *
-                  </Form.Label>
-                  <Form.Select
-                    name="idLugarInicio"
-                    value={formData.idLugarInicio}
-                    onChange={handleChange}
-                    isInvalid={!!formErrors.idLugarInicio}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {lugares.map((l) => (
-                      <option key={l.idLugar} value={l.idLugar}>
-                        {l.nombre}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  <Form.Control.Feedback type="invalid">
-                    {formErrors.idLugarInicio}
-                  </Form.Control.Feedback>
-                </Col>
-                <Col md={6}>
-                  <Form.Label className="fw-semibold">
-                    Lugar de Destino *
-                  </Form.Label>
-                  <Form.Select
-                    name="idLugarFin"
-                    value={formData.idLugarFin}
-                    onChange={handleChange}
-                    isInvalid={!!formErrors.idLugarFin}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {lugares.map((l) => (
-                      <option key={l.idLugar} value={l.idLugar}>
-                        {l.nombre}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  <Form.Control.Feedback type="invalid">
-                    {formErrors.idLugarFin}
-                  </Form.Control.Feedback>
-                </Col>
-              </Row>
-            ) : (
-              <>
-                <Row className="mb-2">
-                  <Col md={12}>
-                    <strong className="text-primary">Punto A (Inicio)</strong>
-                  </Col>
-                  <Col>
+                    {/* --- MODIFICACIÓN 2: Texto de ayuda --- */}
+                    <Form.Text
+                      className="text-muted"
+                      style={{ fontSize: "0.85rem" }}
+                    >
+                      Solo se permiten letras y espacios (sin números ni
+                      símbolos).
+                    </Form.Text>
+                  </Form.Group>
+                  <Form.Group as={Col} md={4}>
+                    <Form.Label className="fw-semibold">
+                      <User size={16} className="me-1" /> ID Usuario (Opcional)
+                    </Form.Label>
                     <Form.Control
                       type="number"
-                      step="any"
-                      placeholder="Latitud Inicio"
-                      name="latitudInicio"
-                      value={formData.latitudInicio}
+                      placeholder="Sin asignar"
+                      name="idUsuario"
+                      value={formData.idUsuario}
                       onChange={handleChange}
-                      isInvalid={!!formErrors.coordenadasInicio}
                     />
-                  </Col>
-                  <Col>
-                    <Form.Control
-                      type="number"
-                      step="any"
-                      placeholder="Longitud Inicio"
-                      name="longitudInicio"
-                      value={formData.longitudInicio}
-                      onChange={handleChange}
-                      isInvalid={!!formErrors.coordenadasInicio}
-                    />
-                  </Col>
+                  </Form.Group>
                 </Row>
-                <Form.Control.Feedback type="invalid" className="d-block mb-3">
-                  {formErrors.coordenadasInicio}
-                </Form.Control.Feedback>
-                <Row>
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold">
+                    <AlignLeft size={16} className="me-1" /> Descripción
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    name="descripcion"
+                    value={formData.descripcion}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+                <hr className="my-4" />
+                <h6 className="text-muted fw-bold mb-3">
+                  Definición de Trayecto
+                </h6>
+                <Nav
+                  variant="pills"
+                  className="mb-3 justify-content-center"
+                  activeKey={modoDefinicion}
+                  onSelect={(k) => setModoDefinicion(k)}
+                >
+                  <Nav.Item>
+                    <Nav.Link
+                      eventKey="lugares"
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          modoDefinicion === "lugares"
+                            ? kairosTheme.primary
+                            : "",
+                      }}
+                    >
+                      <MapPin size={16} className="me-2" /> Por Lugares
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                      eventKey="coordenadas"
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          modoDefinicion === "coordenadas"
+                            ? kairosTheme.primary
+                            : "",
+                      }}
+                    >
+                      <Globe size={16} className="me-2" /> Por Coordenadas
+                    </Nav.Link>
+                  </Nav.Item>
+                </Nav>
+                <div className="p-3 border rounded bg-light">
+                  {modoDefinicion === "lugares" ? (
+                    <Row>
+                      <Col md={6}>
+                        <Form.Label className="fw-semibold">
+                          Lugar de Inicio *
+                        </Form.Label>
+                        <Form.Select
+                          name="idLugarInicio"
+                          value={formData.idLugarInicio}
+                          onChange={handleChange}
+                          isInvalid={!!formErrors.idLugarInicio}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {lugares
+                            .filter(
+                              (l) =>
+                                !intermediateStops.some(
+                                  (s) => s.idLugar === l.idLugar
+                                )
+                            )
+                            .map((l) => (
+                              <option key={l.idLugar} value={l.idLugar}>
+                                {l.nombre}
+                              </option>
+                            ))}
+                        </Form.Select>
+                        <Form.Control.Feedback type="invalid">
+                          {formErrors.idLugarInicio}
+                        </Form.Control.Feedback>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="fw-semibold">
+                          Lugar de Destino *
+                        </Form.Label>
+                        <Form.Select
+                          name="idLugarFin"
+                          value={formData.idLugarFin}
+                          onChange={handleChange}
+                          isInvalid={!!formErrors.idLugarFin}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {lugares
+                            .filter(
+                              (l) =>
+                                !intermediateStops.some(
+                                  (s) => s.idLugar === l.idLugar
+                                )
+                            )
+                            .map((l) => (
+                              <option key={l.idLugar} value={l.idLugar}>
+                                {l.nombre}
+                              </option>
+                            ))}
+                        </Form.Select>
+                        <Form.Control.Feedback type="invalid">
+                          {formErrors.idLugarFin}
+                        </Form.Control.Feedback>
+                      </Col>
+                    </Row>
+                  ) : (
+                    <>
+                      <Row className="mb-2">
+                        <Col md={12}>
+                          <strong className="text-primary">
+                            Punto A (Inicio)
+                          </strong>
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type="number"
+                            step="any"
+                            placeholder="Latitud Inicio"
+                            name="latitudInicio"
+                            value={formData.latitudInicio}
+                            onChange={handleChange}
+                            isInvalid={!!formErrors.coordenadasInicio}
+                          />
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type="number"
+                            step="any"
+                            placeholder="Longitud Inicio"
+                            name="longitudInicio"
+                            value={formData.longitudInicio}
+                            onChange={handleChange}
+                            isInvalid={!!formErrors.coordenadasInicio}
+                          />
+                        </Col>
+                      </Row>
+                      <Form.Control.Feedback
+                        type="invalid"
+                        className="d-block mb-3"
+                      >
+                        {formErrors.coordenadasInicio}
+                      </Form.Control.Feedback>
+                      <Row>
+                        <Col md={12}>
+                          <strong className="text-danger">Punto B (Fin)</strong>
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type="number"
+                            step="any"
+                            placeholder="Latitud Fin"
+                            name="latitudFin"
+                            value={formData.latitudFin}
+                            onChange={handleChange}
+                            isInvalid={!!formErrors.coordenadasFin}
+                          />
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type="number"
+                            step="any"
+                            placeholder="Longitud Fin"
+                            name="longitudFin"
+                            value={formData.longitudFin}
+                            onChange={handleChange}
+                            isInvalid={!!formErrors.coordenadasFin}
+                          />
+                        </Col>
+                      </Row>
+                      <Form.Control.Feedback type="invalid" className="d-block">
+                        {formErrors.coordenadasFin}
+                      </Form.Control.Feedback>
+                    </>
+                  )}
+                </div>
+                <Row className="mt-4">
                   <Col md={12}>
-                    <strong className="text-danger">Punto B (Fin)</strong>
-                  </Col>
-                  <Col>
-                    <Form.Control
-                      type="number"
-                      step="any"
-                      placeholder="Latitud Fin"
-                      name="latitudFin"
-                      value={formData.latitudFin}
-                      onChange={handleChange}
-                      isInvalid={!!formErrors.coordenadasFin}
-                    />
-                  </Col>
-                  <Col>
-                    <Form.Control
-                      type="number"
-                      step="any"
-                      placeholder="Longitud Fin"
-                      name="longitudFin"
-                      value={formData.longitudFin}
-                      onChange={handleChange}
-                      isInvalid={!!formErrors.coordenadasFin}
-                    />
-                  </Col>
-                </Row>
-                <Form.Control.Feedback type="invalid" className="d-block">
-                  {formErrors.coordenadasFin}
-                </Form.Control.Feedback>
-              </>
-            )}
-          </div>
-
-          <Row className="mt-4">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Check
-                  type="switch"
-                  name="estatusBool"
-                  id="estatus-switch"
-                  label={
-                    <span className="d-flex align-items-center fw-semibold">
-                      <CheckCircle
-                        size={18}
-                        className="me-2"
-                        style={{
-                          color: isStatusActive
-                            ? kairosTheme.success
-                            : kairosTheme.danger,
-                        }}
+                    <Form.Group>
+                      <Form.Check
+                        type="switch"
+                        name="estatusBool"
+                        id="estatus-switch"
+                        label={
+                          <span className="d-flex align-items-center fw-semibold">
+                            <CheckCircle
+                              size={18}
+                              className="me-2"
+                              style={{
+                                color: isStatusActive
+                                  ? kairosTheme.success
+                                  : kairosTheme.danger,
+                              }}
+                            />
+                            {isStatusActive ? "Ruta Activa" : "Ruta Inactiva"}
+                          </span>
+                        }
+                        checked={isStatusActive}
+                        onChange={handleChange}
                       />
-                      {isStatusActive ? "Ruta Activa" : "Ruta Inactiva"}
-                    </span>
-                  }
-                  checked={isStatusActive}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-        </Form>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Tab.Pane>
+              <Tab.Pane eventKey="paradas">
+                <h6 className="text-muted fw-bold mb-3">
+                  Puntos de Parada (entre inicio y destino)
+                </h6>
+                <Row className="mb-3">
+                  <Col md={9}>
+                    <Form.Select
+                      value={newStopId}
+                      onChange={(e) => setNewStopId(e.target.value)}
+                    >
+                      <option value="">Añadir Lugar de Parada...</option>
+                      {lugares
+                        .filter(
+                          (l) =>
+                            l.idLugar !== parseInt(formData.idLugarInicio) &&
+                            l.idLugar !== parseInt(formData.idLugarFin) &&
+                            !intermediateStops.some(
+                              (s) => s.idLugar === l.idLugar
+                            )
+                        )
+                        .map((l) => (
+                          <option key={l.idLugar} value={l.idLugar}>
+                            {l.nombre}
+                          </option>
+                        ))}
+                    </Form.Select>
+                  </Col>
+                  <Col md={3}>
+                    <Button
+                      onClick={addStop}
+                      disabled={!newStopId}
+                      className="w-100"
+                      style={{
+                        backgroundColor: kairosTheme.primary,
+                        border: "none",
+                      }}
+                    >
+                      <Plus size={16} /> Agregar
+                    </Button>
+                  </Col>
+                </Row>
+                <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                  <Table striped bordered hover size="sm" className="mt-3">
+                    <thead>
+                      <tr style={{ backgroundColor: kairosTheme.light }}>
+                        <th>#</th>
+                        <th>Lugar</th>
+                        <th className="text-center">Orden</th>
+                        <th className="text-center">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {intermediateStops.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="text-center text-muted">
+                            Aún no hay paradas intermedias.
+                          </td>
+                        </tr>
+                      ) : (
+                        intermediateStops.map((stop, index) => (
+                          <tr key={stop.idLugar}>
+                            <td>
+                              <Badge bg="info">{stop.idLugar}</Badge>
+                            </td>
+                            <td>{stop.nombreLugar}</td>
+                            <td className="text-center fw-bold">
+                              {stop.orden}
+                            </td>
+                            <td className="text-center">
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                onClick={() => updateStopOrder(index, "up")}
+                                disabled={index === 0}
+                                className="me-1"
+                              >
+                                <MoveUp size={14} />
+                              </Button>
+                              <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                onClick={() => updateStopOrder(index, "down")}
+                                disabled={
+                                  index === intermediateStops.length - 1
+                                }
+                                className="me-2"
+                              >
+                                <MoveDown size={14} />
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => removeStop(stop.idLugar)}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
+                {modoDefinicion === "coordenadas" &&
+                  intermediateStops.length > 0 && (
+                    <Alert variant="warning" className="mt-3">
+                      ⚠️ **Nota:** Las paradas intermedias solo usan el ID del
+                      lugar. Si usaste coordenadas para inicio/fin, la ruta
+                      resultante será: Inicio (coordenadas) → Paradas (lugares)
+                      → Fin
+                    </Alert>
+                  )}
+              </Tab.Pane>
+            </Tab.Content>
+          </Form>
+        </Tab.Container>
       </Modal.Body>
       <Modal.Footer style={{ backgroundColor: kairosTheme.light }}>
         <Button
@@ -673,7 +964,7 @@ const GestionRutasContent = () => {
       await Promise.all([getRutas(), getLugares()]);
       setDataLoaded(true);
     } catch (error) {
-      setError("Verifica que la API esté activa.");
+      setError("Error al cargar datos. Verifica que la API esté activa.");
       showMessage("Error al cargar datos", "danger");
     } finally {
       setLoading((prev) => ({ ...prev, rutas: false }));
@@ -715,15 +1006,27 @@ const GestionRutasContent = () => {
 
     setLoading((prev) => ({ ...prev, action: true }));
     try {
-      const rutaLimpia = { ...ruta, estatus: nuevoEstatus };
+      const rutaLimpia = {
+        ...ruta,
+        estatus: nuevoEstatus,
+        idLugarInicioNavigation: null,
+        idLugarFinNavigation: null,
+        idUsuarioNavigation: null,
+        rutasLugares: extractData(ruta.rutasLugares).map((rl) => ({
+          idLugar: rl.idLugar,
+          orden: rl.orden,
+        })),
+      };
       await updateRuta(ruta.idRuta, rutaLimpia);
       showMessage(
-        `Ruta ${nuevoEstatus === "Activa" ? "activada" : "desactivada"} correctamente`,
+        `Ruta ${
+          nuevoEstatus === "Activa" ? "activada" : "desactivada"
+        } correctamente`,
         "success"
       );
       await getRutas();
     } catch (error) {
-      showMessage(`Error: ${error.message}`, "danger");
+      showMessage(`Error: ${formatError(error)}`, "danger");
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }
@@ -747,7 +1050,7 @@ const GestionRutasContent = () => {
       handleCloseModal();
       await getRutas();
     } catch (error) {
-      showMessage(`Error: ${error.message}`, "danger");
+      showMessage(`Error: ${formatError(error)}`, "danger");
     } finally {
       setLoading((prev) => ({ ...prev, action: false }));
     }
@@ -761,7 +1064,7 @@ const GestionRutasContent = () => {
       showMessage("Ruta eliminada exitosamente", "success");
       await getRutas();
     } catch (error) {
-      showMessage("Error al eliminar ruta", "danger");
+      showMessage(`Error al eliminar: ${formatError(error)}`, "danger");
     } finally {
       setConfirmingId(null);
       setLoading((prev) => ({ ...prev, action: false }));
@@ -793,22 +1096,95 @@ const GestionRutasContent = () => {
   ).length;
 
   const renderUbicacion = (idLugar, lat, lon, navProp) => {
-    if (idLugar && navProp) {
-      return (
-        <Badge bg="primary">
-          <MapPin size={12} className="me-1" /> {navProp.nombre}
-        </Badge>
-      );
+    if (idLugar) {
+      if (navProp && navProp.nombre) {
+        return (
+          <Badge bg="primary">
+            <MapPin size={12} className="me-1" /> {navProp.nombre}
+          </Badge>
+        );
+      } else {
+        const found = lugaresDisponibles.find((l) => l.idLugar === idLugar);
+        if (found) {
+          return (
+            <Badge bg="primary">
+              <MapPin size={12} className="me-1" /> {found.nombre}
+            </Badge>
+          );
+        }
+      }
     }
+
     if (lat && lon) {
       return (
         <Badge bg="secondary">
-          <Globe size={12} className="me-1" /> {lat.toFixed(4)},{" "}
-          {lon.toFixed(4)}
+          <Globe size={12} className="me-1" /> {parseFloat(lat).toFixed(4)},{" "}
+          {parseFloat(lon).toFixed(4)}
         </Badge>
       );
     }
     return <span className="text-muted small">N/A</span>;
+  };
+
+  const renderParadasIntermedias = (rutasLugares) => {
+    const stops = extractData(rutasLugares).sort((a, b) => a.orden - b.orden);
+    const count = stops.length;
+
+    if (count === 0) {
+      return (
+        <Badge bg="light" text="secondary">
+          Directo
+        </Badge>
+      );
+    }
+
+    const getNombreLugar = (idLugar, navProp) => {
+      if (navProp && navProp.nombre) return navProp.nombre;
+      const lugarEncontrado = lugaresDisponibles.find(
+        (l) => l.idLugar === idLugar
+      );
+      if (lugarEncontrado) return lugarEncontrado.nombre;
+      return `Lugar ID: ${idLugar}`;
+    };
+
+    const tooltip = (
+      <Tooltip id={`tooltip-stops-${count}`}>
+        <div className="text-start">
+          <div className="fw-bold mb-1 border-bottom pb-1">Itinerario:</div>
+          <ul className="list-unstyled mb-0" style={{ fontSize: "0.85rem" }}>
+            {stops.map((stop) => (
+              <li key={stop.idLugar} className="mb-1">
+                <span className="fw-bold text-info me-1">{stop.orden}.</span>
+                {/* Lógica de búsqueda de nombre aquí */}
+                {getNombreLugar(stop.idLugar, stop.idLugarNavigation)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Tooltip>
+    );
+
+    return (
+      <OverlayTrigger
+        placement="top"
+        delay={{ show: 250, hide: 400 }}
+        overlay={tooltip}
+      >
+        <Badge
+          bg="warning"
+          text="dark"
+          style={{
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          <ListOrdered size={14} className="me-1" />
+          {count} Paradas
+          <Info size={12} className="ms-1 opacity-50" />
+        </Badge>
+      </OverlayTrigger>
+    );
   };
 
   return (
@@ -830,7 +1206,6 @@ const GestionRutasContent = () => {
         .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .status-badge { padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; }
       `}</style>
-
       <RutaModal
         show={showModal}
         handleClose={handleCloseModal}
@@ -840,7 +1215,6 @@ const GestionRutasContent = () => {
         lugares={lugaresDisponibles}
       />
       <MessageBox message={message} />
-
       <Container fluid className="p-4">
         <div
           style={{
@@ -855,7 +1229,7 @@ const GestionRutasContent = () => {
           <Row className="align-items-center">
             <Col md={8}>
               <div className="d-flex align-items-center text-white">
-                <Map size={40} className="me-3" />
+                <MapIcon size={40} className="me-3" />
                 <div>
                   <h1 className="mb-1 fw-bold" style={{ fontSize: "2rem" }}>
                     Gestión de Rutas
@@ -901,7 +1275,6 @@ const GestionRutasContent = () => {
             </Col>
           </Row>
         </div>
-
         {error && (
           <Alert variant="danger">
             {error}{" "}
@@ -916,7 +1289,6 @@ const GestionRutasContent = () => {
             rutas...
           </Alert>
         )}
-
         <Row className="mb-4 g-3">
           <Col md={4}>
             <Card
@@ -969,7 +1341,6 @@ const GestionRutasContent = () => {
             </Card>
           </Col>
         </Row>
-
         <Card
           className="border-0 shadow-sm mb-4"
           style={{ borderRadius: "12px" }}
@@ -1002,18 +1373,18 @@ const GestionRutasContent = () => {
             </Row>
           </Card.Body>
         </Card>
-
         <Card
           className="border-0 shadow-sm"
           style={{ borderRadius: "12px", overflow: "hidden" }}
         >
           <div className="table-responsive">
-            <Table className="align-middle mb-0" style={{ minWidth: "1000px" }}>
+            <Table className="align-middle mb-0" style={{ minWidth: "1200px" }}>
               <thead style={{ backgroundColor: kairosTheme.light }}>
                 <tr>
                   <th className="p-3">ID</th>
                   <th className="p-3">Nombre</th>
                   <th className="p-3">Origen</th>
+                  <th className="p-3">Paradas Intermedias</th>
                   <th className="p-3">Destino</th>
                   <th className="p-3">Usuario</th>
                   <th className="p-3 text-center">Estado</th>
@@ -1049,6 +1420,9 @@ const GestionRutasContent = () => {
                           r.longitudInicio,
                           r.idLugarInicioNavigation
                         )}
+                      </td>
+                      <td className="p-3">
+                        {renderParadasIntermedias(r.rutasLugares)}
                       </td>
                       <td className="p-3">
                         {renderUbicacion(
@@ -1088,10 +1462,12 @@ const GestionRutasContent = () => {
                             className="btn-action"
                             style={{
                               backgroundColor: isActive
-                                ? "white"
-                                : kairosTheme.success,
-                              borderColor: kairosTheme.success,
-                              color: isActive ? kairosTheme.secondary : "white",
+                                ? kairosTheme.success
+                                : "white",
+                              borderColor: isActive
+                                ? kairosTheme.success
+                                : kairosTheme.secondary,
+                              color: isActive ? "white" : kairosTheme.secondary,
                             }}
                           >
                             <Power size={16} />
@@ -1125,7 +1501,7 @@ const GestionRutasContent = () => {
                 })}
                 {filteredRutas.length === 0 && !isLoading && (
                   <tr>
-                    <td colSpan="7" className="text-center p-5 text-muted">
+                    <td colSpan="8" className="text-center p-5 text-muted">
                       No se encontraron rutas
                     </td>
                   </tr>
@@ -1135,7 +1511,6 @@ const GestionRutasContent = () => {
           </div>
         </Card>
       </Container>
-
       {confirmingId && (
         <div
           style={{

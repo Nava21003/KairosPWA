@@ -20,7 +20,49 @@ import {
   LogOut,
   Mail,
   HelpCircle,
+  MessageCircle,
 } from "lucide-react";
+import { BiMoney } from "react-icons/bi";
+
+const MENU_STRUCTURE = [
+  {
+    header: null,
+    items: [{ path: "/admin", icon: Home, label: "Dashboard", end: true }],
+  },
+  {
+    header: "Gestión de Contenido",
+    items: [
+      { path: "/admin/categorias", icon: Layers, label: "Categorías" },
+      { path: "/admin/intereses", icon: Heart, label: "Intereses" },
+      { path: "/admin/lugares", icon: Store, label: "Lugares" },
+      { path: "/admin/rutas", icon: Map, label: "Rutas" },
+      { path: "/admin/pois", icon: MapPin, label: "Puntos de Interés" },
+      { path: "/admin/promociones", icon: Tags, label: "Promociones" },
+    ],
+  },
+  {
+    header: "Administración",
+    items: [
+      { path: "/admin/socios", icon: Handshake, label: "Socios Afiliados" },
+      { path: "/admin/usuarios", icon: Users, label: "Usuarios" },
+      { path: "/admin/roles", icon: ShieldCheck, label: "Roles y Permisos" },
+    ],
+  },
+  {
+    header: "Comunicación & Monitoreo",
+    items: [
+      { path: "/admin/comentarios", icon: MessageCircle, label: "Comentarios" },
+      { path: "/admin/mensajes", icon: Mail, label: "Mensajes" },
+      { path: "/admin/faq", icon: HelpCircle, label: "FAQ" },
+      { path: "/admin/notificaciones", icon: Bell, label: "Notificaciones" },
+      { path: "/admin/actividad", icon: TrendingUp, label: "Actividad Global" },
+    ],
+  },
+  {
+    header: "Sistema",
+    items: [{ path: "/admin/ganancias", icon: BiMoney, label: "Ganancias" }],
+  },
+];
 
 const NavbarAdmin = ({ sidebarOpen }) => {
   const navigate = useNavigate();
@@ -41,7 +83,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
       <div
         onClick={() => navigate(to)}
         className={`nav-link-kairos ${isActive ? "active" : ""}`}
-        style={{ cursor: "pointer" }}
+        role="button"
       >
         <Icon className="me-3" size={18} /> {label}
       </div>
@@ -68,7 +110,6 @@ const NavbarAdmin = ({ sidebarOpen }) => {
           justify-content: space-between;
         }
 
-        /* Scrollbar personalizado */
         .sidebar::-webkit-scrollbar { width: 6px; }
         .sidebar::-webkit-scrollbar-thumb {
           background-color: rgba(255,255,255,0.2);
@@ -84,6 +125,7 @@ const NavbarAdmin = ({ sidebarOpen }) => {
           letter-spacing: 1px; background: rgba(255,255,255,0.05);
           border-bottom: 1px solid rgba(255,255,255,0.15);
           backdrop-filter: blur(6px); border-radius: 0 0 6px 6px;
+          white-space: nowrap;
         }
 
         .sidebar-divider {
@@ -100,7 +142,8 @@ const NavbarAdmin = ({ sidebarOpen }) => {
           display: flex; align-items: center;
           transition: all .25s;
           font-weight: 500; font-size: 0.95rem;
-          user-select: none; /* Evita que se seleccione el texto al hacer click rápido */
+          user-select: none;
+          cursor: pointer;
         }
 
         .nav-link-kairos:hover { 
@@ -137,71 +180,27 @@ const NavbarAdmin = ({ sidebarOpen }) => {
         <div className="sidebar-header mb-3 p-3">🏛️ Kairos Admin</div>
 
         <Nav className="flex-column px-3">
-          <SidebarLink to="/admin" icon={Home} label="Dashboard" end={true} />
+          {MENU_STRUCTURE.map((section, index) => (
+            <React.Fragment key={index}>
+              {section.header && (
+                <div className="sidebar-divider">{section.header}</div>
+              )}
 
-          <div className="sidebar-divider">Gestión de Contenido</div>
-
-          <SidebarLink
-            to="/admin/categorias"
-            icon={Layers}
-            label="Categorías"
-          />
-          <SidebarLink to="/admin/intereses" icon={Heart} label="Intereses" />
-          <SidebarLink to="/admin/lugares" icon={Store} label="Lugares" />
-          <SidebarLink to="/admin/rutas" icon={Map} label="Rutas" />
-          <SidebarLink
-            to="/admin/pois"
-            icon={MapPin}
-            label="Puntos de Interés"
-          />
-          <SidebarLink
-            to="/admin/promociones"
-            icon={Tags}
-            label="Promociones"
-          />
-
-          {/* SECCIÓN: ADMINISTRACIÓN */}
-          <div className="sidebar-divider">Administración</div>
-
-          <SidebarLink
-            to="/admin/socios"
-            icon={Handshake}
-            label="Socios Afiliados"
-          />
-          <SidebarLink to="/admin/usuarios" icon={Users} label="Usuarios" />
-          <SidebarLink
-            to="/admin/roles"
-            icon={ShieldCheck}
-            label="Roles y Permisos"
-          />
-
-          {/* SECCIÓN: COMUNICACIÓN & DATOS */}
-          <div className="sidebar-divider">Comunicación & Monitoreo</div>
-
-          <SidebarLink to="/admin/mensajes" icon={Mail} label="Mensajes" />
-          <SidebarLink to="/admin/faq" icon={HelpCircle} label="FAQ" />
-          <SidebarLink
-            to="/admin/notificaciones"
-            icon={Bell}
-            label="Notificaciones"
-          />
-          <SidebarLink
-            to="/admin/actividad"
-            icon={TrendingUp}
-            label="Actividad Global"
-          />
-
-          {/* SECCIÓN: SISTEMA */}
-          <div className="sidebar-divider">Sistema</div>
-
-          <SidebarLink
-            to="/admin/configuracion"
-            icon={Settings}
-            label="Configuración"
-          />
+              {section.items.map((item, subIndex) => (
+                <SidebarLink
+                  key={subIndex}
+                  to={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  end={item.end}
+                />
+              ))}
+            </React.Fragment>
+          ))}
         </Nav>
       </div>
 
+      <br />
       <div className="px-3 mb-4">
         <Button className="logout-btn" onClick={handleLogout}>
           <LogOut className="me-2" size={18} /> Cerrar Sesión

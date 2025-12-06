@@ -120,11 +120,17 @@ const CategoriaModal = ({
     }
   }, [categoria, show]);
 
+  // --- MODIFICACIÓN 1: Validación de nombre (sin números ni caracteres especiales) ---
   const validateForm = () => {
     const errors = {};
+    // Regex: Solo permite letras (mayúsculas, minúsculas, acentos) y espacios
+    const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 
     if (!formData.nombre.trim()) {
       errors.nombre = "El nombre es requerido";
+    } else if (!regexSoloLetras.test(formData.nombre)) {
+      errors.nombre =
+        "El nombre no puede llevar números ni caracteres especiales";
     }
 
     setFormErrors(errors);
@@ -986,21 +992,28 @@ const GestionCategoriasContent = () => {
                       </td>
                       <td style={{ padding: "1rem" }} className="text-center">
                         <div className="d-flex gap-2 justify-content-center">
+                          {/* --- MODIFICACIÓN 2: Lógica de colores del botón Power invertida --- */}
                           <Button
                             size="sm"
                             onClick={() => handleToggleStatus(c)}
                             disabled={loading.action}
                             className="btn-action"
                             style={{
+                              // Si está activo (c.estatus = true): Fondo Verde
+                              // Si está inactivo (c.estatus = false): Fondo Blanco
                               backgroundColor: c.estatus
-                                ? kairosTheme.white
-                                : kairosTheme.success,
-                              borderColor: c.estatus
-                                ? kairosTheme.secondary
-                                : kairosTheme.success,
-                              color: c.estatus
-                                ? kairosTheme.secondary
+                                ? kairosTheme.success
                                 : kairosTheme.white,
+
+                              // Borde: Si blanco, borde gris; Si verde, borde verde
+                              borderColor: c.estatus
+                                ? kairosTheme.success
+                                : kairosTheme.secondary,
+
+                              // Texto: Si fondo verde, texto blanco; Si fondo blanco, texto gris
+                              color: c.estatus
+                                ? kairosTheme.white
+                                : kairosTheme.secondary,
                             }}
                             title={
                               c.estatus

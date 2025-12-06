@@ -3,6 +3,7 @@ import { Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../Context/Auth/AuthContext";
 import RoleContext from "../../Context/Roles/RoleContext";
+import Swal from "sweetalert2";
 
 const ADMIN_PASSWORD_GATE = "admin1234";
 
@@ -72,7 +73,18 @@ const Registro = () => {
       });
 
       if (response && response.success) {
-        navigate("/admin");
+        Swal.fire({
+          title: "¡Registro Exitoso!",
+          text: "Usuario registrado correctamente. Redirigiendo al Login...",
+          icon: "success",
+          confirmButtonColor: "#1e4d2b",
+          confirmButtonText: "Ir a Login",
+          timer: 3000,
+          timerProgressBar: true,
+          allowOutsideClick: false,
+        }).then((result) => {
+          navigate("/login");
+        });
       } else {
         setError("Error en el registro. Intenta de nuevo.");
       }

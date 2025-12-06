@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Row,
@@ -10,23 +10,72 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
-import FaqContext from "../../Context/Faq/FaqContext";
+
+// Nota: En tu proyecto real, descomenta el import del Contexto y elimina los datos simulados.
+// import FaqContext from "../../Context/Faq/FaqContext";
 
 const Faq = () => {
-  const { faqs, getFaqs } = useContext(FaqContext);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeKey, setActiveKey] = useState("0");
+  // === SIMULACIÓN DE CONTEXTO (Para que funcione la vista previa) ===
+  // En tu código real, usarías: const { faqs, getFaqs } = useContext(FaqContext);
+  const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
+    // Simulamos la carga de datos
+    const loadData = () => {
       setLoading(true);
-      await getFaqs();
-      setLoading(false);
+      setTimeout(() => {
+        setFaqs([
+          {
+            idPregunta: 1,
+            categoria: "General",
+            pregunta: "¿Qué es KAIROS?",
+            respuesta:
+              "KAIROS es una plataforma diseñada para ayudarte a gestionar tu bienestar digital, permitiéndote desconectar de la tecnología y reconectar con el mundo real a través de rutas y actividades personalizadas.",
+            estatus: "visible",
+          },
+          {
+            idPregunta: 2,
+            categoria: "Suscripción",
+            pregunta: "¿La aplicación tiene costo?",
+            respuesta:
+              "La descarga es gratuita. Ofrecemos una versión básica con funcionalidades limitadas y una suscripción Premium que desbloquea rutas exclusivas y estadísticas avanzadas de bienestar.",
+            estatus: "visible",
+          },
+          {
+            idPregunta: 3,
+            categoria: "Seguridad",
+            pregunta: "¿Mis datos de ubicación son privados?",
+            respuesta:
+              "Absolutamente. Tu privacidad es nuestra prioridad. Los datos de ubicación solo se usan en tiempo real para la navegación y nunca se comparten con terceros sin tu consentimiento explícito.",
+            estatus: "visible",
+          },
+          {
+            idPregunta: 4,
+            categoria: "Técnico",
+            pregunta: "¿Cómo creo una ruta personalizada?",
+            respuesta:
+              "Ve a la sección 'Mis Rutas', selecciona el botón '+' y elige los puntos de interés que desees conectar. Nuestro algoritmo optimizará el trayecto para ti.",
+            estatus: "visible",
+          },
+          {
+            idPregunta: 5,
+            categoria: "Comunidad",
+            pregunta: "¿Puedo sugerir un lugar nuevo?",
+            respuesta:
+              "¡Sí! Nos encanta que la comunidad participe. Puedes sugerir nuevos puntos de interés desde tu perfil en la sección 'Colaborar'.",
+            estatus: "visible",
+          },
+        ]);
+        setLoading(false);
+      }, 1000);
     };
     loadData();
   }, []);
+  // ================================================================
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeKey, setActiveKey] = useState("0");
 
   const getIconByCategory = (category) => {
     if (!category) return "bi-question-circle";
@@ -41,6 +90,7 @@ const Faq = () => {
       return "bi-fingerprint";
     if (cat.includes("plataforma") || cat.includes("móvil")) return "bi-phone";
     if (cat.includes("rutas") || cat.includes("mapa")) return "bi-map";
+    if (cat.includes("comunidad")) return "bi-people";
 
     return "bi-question-circle";
   };
@@ -63,40 +113,49 @@ const Faq = () => {
 
   return (
     <>
-      <section className="faq-section">
-        <Container className="pt-5 pb-5 position-relative">
-          <div className="bg-blob"></div>
+      <section className="faq-section position-relative overflow-hidden">
+        {/* === ELEMENTOS DE FONDO (Iguales a los otros componentes) === */}
+        <div className="faq-bg-gradient"></div>
+        <div className="faq-particles"></div>
+        <div className="floating-shape shape-1"></div>
+        <div className="floating-shape shape-2"></div>
 
-          <Row className="justify-content-center text-center position-relative z-2">
+        <Container
+          className="pt-5 pb-5 position-relative"
+          style={{ zIndex: 10 }}
+        >
+          {/* === ENCABEZADO === */}
+          <Row className="justify-content-center text-center mb-5">
             <Col lg={8}>
               <div className="d-inline-block mb-3">
-                <span className="subtitle-badge">
+                <span className="badge-custom">
                   <i className="bi bi-life-preserver me-2"></i> Centro de Ayuda
                 </span>
               </div>
-              <h1 className="display-5 fw-bold text-dark mb-3">
-                ¿Cómo podemos <span className="text-gradient">ayudarte?</span>
+              <h1 className="display-4 fw-bold text-white mb-3">
+                ¿Cómo podemos <span className="text-highlight">ayudarte?</span>
               </h1>
-              <p className="text-muted lead mb-4">
-                Resuelve tus dudas sobre KAIROS y empieza tu desconexión
-                digital.
+              <p className="text-white-50 lead mb-5">
+                Resuelve tus dudas sobre KAIROS y empieza tu desconexión digital
+                sin contratiempos.
               </p>
 
-              <div className="search-box-wrapper mx-auto shadow-lg">
+              {/* === BUSCADOR ESTILIZADO === */}
+              <div className="search-box-wrapper mx-auto">
                 <InputGroup className="search-input-group">
-                  <InputGroup.Text className="bg-white border-0 ps-4 text-primary">
+                  <InputGroup.Text className="bg-transparent border-0 ps-4 text-light-green">
                     <i className="bi bi-search"></i>
                   </InputGroup.Text>
                   <Form.Control
                     placeholder="Buscar temas (ej. seguridad, precio...)"
-                    className="border-0 py-3 ps-2 shadow-none"
+                    className="bg-transparent border-0 py-3 ps-2 text-white shadow-none search-input"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                   {searchTerm && (
                     <Button
                       variant="link"
-                      className="text-muted text-decoration-none pe-4 bg-white border-0"
+                      className="text-white-50 text-decoration-none pe-4 border-0"
                       onClick={() => setSearchTerm("")}
                     >
                       <i className="bi bi-x-circle-fill"></i>
@@ -106,15 +165,14 @@ const Faq = () => {
               </div>
             </Col>
           </Row>
-        </Container>
 
-        <Container className="pb-5 position-relative z-2">
+          {/* === LISTA DE PREGUNTAS === */}
           <Row className="justify-content-center">
-            <Col lg={8}>
+            <Col lg={9}>
               {loading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" variant="success" />
-                  <p className="text-muted mt-2">Cargando preguntas...</p>
+                  <p className="text-white-50 mt-2">Cargando preguntas...</p>
                 </div>
               ) : filteredFaqs.length > 0 ? (
                 <Accordion
@@ -132,7 +190,7 @@ const Faq = () => {
                         eventKey={index.toString()}
                         key={key}
                         className={`accordion-card border-0 rounded-4 overflow-hidden mb-0 ${
-                          isActive ? "is-active shadow" : "shadow-sm"
+                          isActive ? "is-active" : ""
                         }`}
                       >
                         <Accordion.Header>
@@ -145,12 +203,12 @@ const Faq = () => {
                             <div className="flex-grow-1">
                               <span
                                 className={`category-text d-block mb-1 ${
-                                  isActive ? "text-primary" : "text-muted"
+                                  isActive ? "text-success" : "text-muted"
                                 }`}
                               >
                                 {item.categoria || "General"}
                               </span>
-                              <span className="fw-bold text-dark h6 m-0 d-block text-start">
+                              <span className="fw-bold text-dark h6 m-0 d-block text-start question-text">
                                 {item.pregunta}
                               </span>
                             </div>
@@ -167,17 +225,17 @@ const Faq = () => {
               ) : (
                 <div className="text-center py-5 empty-state">
                   <div className="mb-3 icon-container">
-                    <i className="bi bi-search display-4 text-muted"></i>
+                    <i className="bi bi-search display-4 text-white-50"></i>
                   </div>
-                  <h4 className="text-dark fw-bold">Sin resultados</h4>
-                  <p className="text-muted">
+                  <h4 className="text-white fw-bold">Sin resultados</h4>
+                  <p className="text-white-50">
                     No encontramos preguntas visibles que coincidan con "
                     {searchTerm}"
                   </p>
                   <Button
                     variant="outline-success"
                     onClick={() => setSearchTerm("")}
-                    className="rounded-pill px-4"
+                    className="rounded-pill px-4 btn-reset"
                   >
                     Ver todas las preguntas
                   </Button>
@@ -185,17 +243,15 @@ const Faq = () => {
               )}
             </Col>
           </Row>
-        </Container>
 
-        {/* === CTA === */}
-        <Container className="pb-5 mb-4">
-          <div className="text-center mt-4">
-            <p className="text-muted mb-3 small">
+          {/* === CTA === */}
+          <div className="text-center mt-5 pt-4">
+            <p className="text-white-50 mb-3 small">
               ¿No encontraste lo que buscabas?
             </p>
             <NavLink
               to="/contacto"
-              className="text-decoration-none fw-bold text-primary link-hover-effect"
+              className="btn-contact-support text-decoration-none fw-bold"
             >
               Contactar a Soporte Técnico{" "}
               <i className="bi bi-arrow-right ms-1"></i>
@@ -205,171 +261,227 @@ const Faq = () => {
       </section>
 
       <style>{`
-        /* === VARIABLES & FUENTES === */
+        /* === VARIABLES (Coinciden con los otros archivos) === */
         :root {
-          --kairos-green: #1e4d2b;
-          --kairos-light: #e8f5e9;
-          --kairos-accent: #2d7a3e;
-          --text-dark: #2c3e50;
+          --color-primary: #1e4d2b;
+          --color-secondary: #2d7a3e;
+          --color-accent: #3d9651;
+          --color-light-green: #90ee90;
         }
 
         .faq-section {
-          background-color: #f8fcf9; 
-          background-image: radial-gradient(#e1efe3 1px, transparent 1px);
-          background-size: 20px 20px;
+          background: #0a1f0f;
           min-height: 100vh;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
-        .bg-blob {
-            position: absolute;
-            top: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(144, 238, 144, 0.15) 0%, rgba(255,255,255,0) 70%);
-            z-index: 0;
-            pointer-events: none;
+        /* === FONDO ANIMADO === */
+        .faq-bg-gradient {
+          position: absolute; inset: 0;
+          background: radial-gradient(circle at 10% 20%, #1e4d2b 0%, #0a1f0f 40%),
+                      radial-gradient(circle at 90% 80%, #2d5016 0%, #0a1f0f 40%);
+          z-index: 1;
         }
 
-        .subtitle-badge {
-            background: rgba(30, 77, 43, 0.08);
-            color: var(--kairos-green);
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        .faq-particles {
+          position: absolute; inset: 0;
+          background-image: radial-gradient(1.5px 1.5px at 50% 50%, rgba(144, 238, 144, 0.2), transparent);
+          background-size: 100px 100px;
+          animation: particlesMove 60s linear infinite;
+          z-index: 2;
+          opacity: 0.5;
+        }
+        @keyframes particlesMove {
+          0% { background-position: 0 0; }
+          100% { background-position: 100px 100px; }
         }
 
-        .text-gradient {
-            background: linear-gradient(90deg, var(--kairos-green), var(--kairos-accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* === ELEMENTOS FLOTANTES === */
+        .floating-shape {
+          position: absolute;
+          filter: blur(80px);
+          z-index: 1;
+          animation: floatShape 10s ease-in-out infinite;
+        }
+        .shape-1 {
+          width: 300px; height: 300px;
+          background: rgba(144, 238, 144, 0.1);
+          top: -100px; left: -100px;
+          border-radius: 50%;
+        }
+        .shape-2 {
+          width: 400px; height: 400px;
+          background: rgba(95, 158, 160, 0.1);
+          bottom: -100px; right: -100px;
+          border-radius: 50%;
+          animation-delay: 2s;
+        }
+        @keyframes floatShape {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(30px, -30px); }
         }
 
+        /* === TEXTOS & BADGES === */
+        .badge-custom {
+          background: rgba(144, 238, 144, 0.15);
+          color: var(--color-light-green);
+          padding: 8px 16px;
+          border: 1px solid var(--color-light-green);
+          border-radius: 50px;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+
+        .text-highlight {
+          color: transparent;
+          background: linear-gradient(90deg, #90ee90, #5f9ea0);
+          -webkit-background-clip: text;
+          background-clip: text;
+        }
+
+        .text-light-green {
+            color: var(--color-light-green);
+        }
+
+        /* === BUSCADOR === */
         .search-box-wrapper {
-            max-width: 550px;
-            border-radius: 50px;
-            transition: transform 0.3s ease;
+          max-width: 600px;
+          transition: transform 0.3s ease;
         }
         .search-box-wrapper:hover {
-            transform: translateY(-2px);
-        }
-        .search-input-group {
-            border-radius: 50px;
-            overflow: hidden;
-            border: 1px solid rgba(0,0,0,0.05);
+          transform: translateY(-2px);
         }
 
+        .search-input-group {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 50px;
+          overflow: hidden;
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+
+        /* === ACORDEÓN (TARJETAS) === */
         .accordion-card {
-            background: #fff;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0,0,0,0.03) !important;
+          background: #ffffff; /* Tarjetas blancas para contraste */
+          transition: all 0.3s ease;
+          border: none !important;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .accordion-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
         }
 
         .accordion-card.is-active {
-            border-left: 4px solid var(--kairos-green) !important;
+          border-left: 5px solid var(--color-accent) !important;
+          background: #fdfdfd;
+        }
+
+        /* Colores dentro del acordeón (fondo blanco, texto oscuro) */
+        .question-text {
+            color: #2c3e50 !important;
         }
 
         .accordion-button {
-            background: transparent !important;
-            padding: 1.5rem;
-            box-shadow: none !important;
+          background: transparent !important;
+          padding: 1.5rem;
+          box-shadow: none !important;
         }
         
         .accordion-button::after {
-            background-size: 1.25rem;
-            opacity: 0.5;
-            transition: all 0.3s;
+          background-size: 1.25rem;
+          opacity: 0.5;
+          transition: all 0.3s;
         }
         .accordion-button:not(.collapsed)::after {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231e4d2b'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-            transform: rotate(-180deg);
-            opacity: 1;
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231e4d2b'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+          transform: rotate(-180deg);
+          opacity: 1;
         }
 
+        /* === ICONOS === */
         .icon-box {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            background-color: #f1f3f5;
-            color: #adb5bd;
-            transition: all 0.3s;
-            font-size: 1.2rem;
-            flex-shrink: 0;
+          width: 45px;
+          height: 45px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 12px;
+          background-color: #f1f3f5;
+          color: #adb5bd;
+          transition: all 0.3s;
+          font-size: 1.2rem;
+          flex-shrink: 0;
         }
         
         .icon-box.active {
-            background-color: var(--kairos-light);
-            color: var(--kairos-green);
+          background-color: var(--color-light-green); /* Verde claro */
+          color: var(--color-primary); /* Verde oscuro */
         }
 
         .category-text {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            font-weight: 700;
-            transition: color 0.3s;
-            text-align: left;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          font-weight: 700;
+          transition: color 0.3s;
+          text-align: left;
         }
 
         .response-line {
-            width: 30px;
-            height: 2px;
-            background-color: var(--kairos-light);
-            margin-bottom: 1rem;
+          width: 30px;
+          height: 3px;
+          background-color: var(--color-light-green);
+          margin-bottom: 1rem;
+          border-radius: 2px;
         }
 
-        .empty-state .icon-container {
-            width: 80px;
-            height: 80px;
-            background: #fff;
+        /* === ESTADO VACÍO & BOTONES === */
+        .icon-container {
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.1);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             margin: 0 auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
 
-        .link-hover-effect {
-            position: relative;
-            display: inline-block;
+        .btn-reset {
+            border-color: var(--color-light-green);
+            color: var(--color-light-green);
         }
-        .link-hover-effect::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            transform: scaleX(0);
-            height: 2px;
-            bottom: -2px;
-            left: 0;
-            background-color: var(--kairos-green);
-            transform-origin: bottom right;
-            transition: transform 0.25s ease-out;
+        .btn-reset:hover {
+            background-color: var(--color-light-green);
+            color: var(--color-primary);
         }
-        .link-hover-effect:hover::after {
-            transform: scaleX(1);
-            transform-origin: bottom left;
+
+        .btn-contact-support {
+            color: var(--color-light-green);
+            padding: 10px 20px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.05);
+            transition: all 0.3s;
+        }
+        .btn-contact-support:hover {
+            background: var(--color-light-green);
+            color: var(--color-primary);
         }
 
         @media (max-width: 576px) {
-            .accordion-button { padding: 1rem; }
-            .icon-box { display: none; }
-            .accordion-body {
-                padding-left: 1rem !important;
-                margin-left: 0 !important;
-            }
+          .accordion-button { padding: 1rem; }
+          .icon-box { display: none; }
+          .accordion-body {
+            padding-left: 1rem !important;
+            margin-left: 0 !important;
+          }
         }
       `}</style>
     </>

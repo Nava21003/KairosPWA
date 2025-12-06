@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Container, Row, Col, Button, Modal, Form } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Modal,
+  Form,
+  Badge,
+} from "react-bootstrap";
 import {
   MapPin,
   Star,
@@ -12,7 +20,13 @@ import {
   ChevronDown,
   Sliders,
   Check,
+  Info,
+  Calendar,
+  Clock,
+  Award,
+  Smartphone,
 } from "lucide-react";
+import Swal from "sweetalert2";
 
 const API_BASE_URL = "http://localhost:5219/";
 
@@ -36,6 +50,10 @@ const Explorar = () => {
   const [lugares, setLugares] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [selectedPromo, setSelectedPromo] = useState(null);
+
   const [filters, setFilters] = useState({
     city: "León, Guanajuato",
     categories: [],
@@ -47,6 +65,7 @@ const Explorar = () => {
   const [currentPromoSlide, setCurrentPromoSlide] = useState(0);
   const [currentPoiIndex, setCurrentPoiIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
   const section3Ref = useRef(null);
@@ -108,7 +127,6 @@ const Explorar = () => {
       );
     }
     setFilteredLugares(results);
-
     setCurrentSlide(0);
     setCurrentPoiIndex(0);
     setCurrentPromoSlide(0);
@@ -160,7 +178,16 @@ const Explorar = () => {
 
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/800x600?text=No+Image";
-    return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+    if (path.startsWith("data:image")) return path;
+    if (path.startsWith("http")) return path;
+    const cleanPath = path.replace(/\\/g, "/");
+    const baseUrl = API_BASE_URL.endsWith("/")
+      ? API_BASE_URL
+      : `${API_BASE_URL}/`;
+    const finalPath = cleanPath.startsWith("/")
+      ? cleanPath.substring(1)
+      : cleanPath;
+    return `${baseUrl}${finalPath}`;
   };
 
   const formatDate = (dateString) => {
@@ -168,6 +195,7 @@ const Explorar = () => {
     return new Date(dateString).toLocaleDateString("es-ES", {
       day: "numeric",
       month: "short",
+      year: "numeric",
     });
   };
 
@@ -217,8 +245,8 @@ const Explorar = () => {
     }
     return isActive && matchesCity;
   });
-  const promocionesSlides = chunkArray(validPromociones, 3);
 
+  const promocionesSlides = chunkArray(validPromociones, 3);
   const nextPromoSlide = () =>
     setCurrentPromoSlide((prev) =>
       prev === promocionesSlides.length - 1 ? 0 : prev + 1
@@ -238,9 +266,28 @@ const Explorar = () => {
       prev === 0 ? lugaresSlides.length - 1 : prev - 1
     );
 
+  const handleVerPromocion = async (promo) => {
+    setSelectedPromo(promo);
+    setShowPromoModal(true);
+
+    try {
+      const payload = {
+        idPromocion: promo.idPromocion,
+        idUsuario: 1,
+      };
+      await fetch(`${API_BASE_URL}api/Promociones/registrar-clic`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      console.log("Ganancia registrada para socio ID:", promo.idSocio);
+    } catch (error) {
+      console.error("Error registrando ganancia:", error);
+    }
+  };
+
   return (
     <>
-      {/* SECCIÓN 1: HERO */}
       <section
         ref={section1Ref}
         className="hero-section full-screen-section text-white position-relative overflow-hidden"
@@ -269,7 +316,6 @@ const Explorar = () => {
             zIndex: 1,
           }}
         ></div>
-
         <Container className="position-relative" style={{ zIndex: 10 }}>
           <Row className="align-items-center justify-content-center">
             <Col lg={8} className="text-center">
@@ -365,7 +411,7 @@ const Explorar = () => {
                             <div className="compact-card h-100 flex-column align-items-stretch p-0 overflow-hidden shadow-sm hover-lift bg-white">
                               <div
                                 className="position-relative"
-                                style={{ height: "320px", overflow: "hidden" }}
+                                style={{ height: "250px", overflow: "hidden" }}
                               >
                                 <img
                                   src={getImageUrl(
@@ -403,8 +449,12 @@ const Explorar = () => {
                                     ? promo.descripcion.substring(0, 80) + "..."
                                     : promo.descripcion}
                                 </p>
-                                <Button className="w-100 rounded-pill btn-outline-custom">
-                                  Reclamar
+                                <Button
+                                  className="w-100 rounded-pill btn-kairos-primary"
+                                  onClick={() => handleVerPromocion(promo)}
+                                >
+                                  <Info size={18} className="me-2" /> Ver
+                                  Detalles
                                 </Button>
                               </div>
                             </div>
@@ -433,7 +483,7 @@ const Explorar = () => {
         </Container>
       </section>
 
-      {/* SECCIÓN 3: PUNTOS DE INTERÉS */}
+      {/* SECCIÓN 3: POIS */}
       <section
         ref={section3Ref}
         className="full-screen-section position-relative overflow-hidden text-white"
@@ -464,7 +514,6 @@ const Explorar = () => {
                 zIndex: 1,
               }}
             ></div>
-
             <Container
               className="position-relative h-100 d-flex align-items-center justify-content-center"
               style={{ zIndex: 10, paddingBottom: "120px" }}
@@ -498,7 +547,6 @@ const Explorar = () => {
                     : "Descubre este maravilloso lugar en tu próxima visita."}
                 </p>
               </div>
-
               {filteredPois.length > 1 && (
                 <>
                   <button
@@ -515,19 +563,16 @@ const Explorar = () => {
                   >
                     <ChevronRight size={32} />
                   </button>
+                  <div className="poi-dots-container">
+                    {filteredPois.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`poi-dot ${currentPoiIndex === idx ? "active" : ""}`}
+                        onClick={() => setCurrentPoiIndex(idx)}
+                      ></div>
+                    ))}
+                  </div>
                 </>
-              )}
-
-              {filteredPois.length > 1 && (
-                <div className="poi-dots-container">
-                  {filteredPois.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`poi-dot ${currentPoiIndex === idx ? "active" : ""}`}
-                      onClick={() => setCurrentPoiIndex(idx)}
-                    ></div>
-                  ))}
-                </div>
               )}
             </Container>
           </>
@@ -664,7 +709,6 @@ const Explorar = () => {
         </Container>
       </section>
 
-      {/* NAVEGACIÓN LATERAL */}
       <div className="nav-dock-minimal">
         <button
           className="nav-btn-mini"
@@ -690,6 +734,173 @@ const Explorar = () => {
           <ChevronDown size={16} />
         </button>
       </div>
+
+      {/* 🟢 MODAL DETALLE DE PROMOCIÓN */}
+      <Modal
+        show={showPromoModal}
+        onHide={() => setShowPromoModal(false)}
+        centered
+        size="lg"
+        contentClassName="border-0 shadow-lg rounded-4 overflow-hidden"
+      >
+        {selectedPromo && (
+          <>
+            <div
+              style={{ position: "relative", height: "300px", width: "100%" }}
+            >
+              <img
+                src={getImageUrl(
+                  selectedPromo.imagen ||
+                    selectedPromo.idLugarNavigation?.imagen
+                )}
+                alt={selectedPromo.titulo}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background:
+                    "linear-gradient(to top, rgba(0,0,0,0.8), transparent)",
+                }}
+              />
+              <button
+                onClick={() => setShowPromoModal(false)}
+                style={{
+                  position: "absolute",
+                  top: "15px",
+                  right: "15px",
+                  background: "rgba(0,0,0,0.5)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "40px",
+                  height: "40px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <XCircle size={24} />
+              </button>
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  left: "20px",
+                  color: "white",
+                }}
+              >
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <Badge bg="warning" text="dark" className="fw-bold">
+                    Promoción Exclusiva
+                  </Badge>
+                  {/* BADGE DE PUNTOS */}
+                  <Badge
+                    bg="light"
+                    text="dark"
+                    className="d-flex align-items-center gap-1 fw-bold"
+                  >
+                    <Award
+                      size={14}
+                      className="text-warning"
+                      fill="currentColor"
+                    />
+                    {selectedPromo.puntosRequeridos || 0} Puntos
+                  </Badge>
+                </div>
+                <h2 className="fw-bold m-0">{selectedPromo.titulo}</h2>
+                <div className="d-flex align-items-center mt-2">
+                  <MapPin size={18} className="me-1 text-warning" />
+                  <span>{selectedPromo.idLugarNavigation?.nombre}</span>
+                </div>
+              </div>
+            </div>
+            <Modal.Body className="p-4">
+              <Row>
+                <Col md={8}>
+                  <h5 className="fw-bold mb-3 text-secondary">Descripción</h5>
+                  <p
+                    className="lead fs-6 text-muted"
+                    style={{ lineHeight: "1.8" }}
+                  >
+                    {selectedPromo.descripcion}
+                  </p>
+                  <hr className="my-4" />
+                  <div className="d-flex gap-4">
+                    <div>
+                      <small className="text-muted d-block fw-bold mb-1">
+                        COMIENZA
+                      </small>
+                      <div className="d-flex align-items-center text-success">
+                        <Calendar size={18} className="me-2" />
+                        {formatDate(selectedPromo.fechaInicio)}
+                      </div>
+                    </div>
+                    <div>
+                      <small className="text-muted d-block fw-bold mb-1">
+                        TERMINA
+                      </small>
+                      <div className="d-flex align-items-center text-danger">
+                        <Clock size={18} className="me-2" />
+                        {formatDate(selectedPromo.fechaFin)}
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+                <Col md={4} className="border-start">
+                  <div className="d-grid gap-2">
+                    <div className="p-3 bg-light rounded-3 mb-3 text-center">
+                      <small className="text-muted">
+                        Presenta este cupón en:
+                      </small>
+                      <div className="fw-bold mt-1 text-dark">
+                        {selectedPromo.idLugarNavigation?.direccion ||
+                          "Sucursal Principal"}
+                      </div>
+                    </div>
+
+                    {/* 🟢 BOTÓN CON SWEETALERT */}
+                    <Button
+                      variant="success"
+                      size="lg"
+                      className="fw-bold rounded-pill"
+                      onClick={() => {
+                        Swal.fire({
+                          title: "¡Acción requerida!",
+                          text: `Para canjear esta promoción por ${selectedPromo.puntosRequeridos || 0} puntos, necesitas usar la App Móvil de Kairos.`,
+                          icon: "info",
+                          showCancelButton: true,
+                          confirmButtonColor: "#1e4d2b",
+                          cancelButtonColor: "#6c757d",
+                          confirmButtonText: "Abrir App",
+                          cancelButtonText: "Entendido",
+                        }).then((result) => {
+                          if (result.isConfirmed) {
+                            Swal.fire(
+                              "Redirigiendo...",
+                              "Intentando abrir la aplicación móvil.",
+                              "success"
+                            );
+                          }
+                        });
+                      }}
+                    >
+                      <Smartphone size={20} className="me-2" /> Canjear en App
+                    </Button>
+                    <small className="text-center text-muted mt-2">
+                      Requiere App Móvil instalada.
+                    </small>
+                  </div>
+                </Col>
+              </Row>
+            </Modal.Body>
+          </>
+        )}
+      </Modal>
 
       <Modal
         show={showModal}
@@ -777,7 +988,7 @@ const Explorar = () => {
         .nav-btn-mini:disabled { opacity: 0; pointer-events: none; }
         .nav-indicators-mini { display: flex; flex-direction: column; gap: 8px; margin: 5px 0; }
         .nav-dot-mini { width: 8px; height: 8px; background-color: rgba(0,0,0,0.3); border-radius: 50%; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.5); }
-        .nav-dot-mini.active { background-color: var(--color-primary); transform: scale(1.4); border-color: var(--color-primary); }
+        .nav-dot-mini.active { background: var(--color-primary); transform: scale(1.4); border-color: var(--color-primary); }
         .poi-content-wrapper { position: relative; z-index: 20; }
         .poi-tag-badge { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 8px 20px; border-radius: 50px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
         .poi-nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: transparent; border: 2px solid rgba(255,255,255,0.3); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; z-index: 30; }

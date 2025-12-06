@@ -629,7 +629,7 @@ const GestionSociosContent = () => {
                   }}
                   className="btn-action"
                 >
-                  <RefreshCw className="me-2" size={20} />{" "}
+                  <RefreshCw className="me-2" size={20} />
                   {loading.socios ? "Cargando..." : "Recargar"}
                 </Button>
                 <Button
@@ -1055,14 +1055,14 @@ const GestionSociosContent = () => {
                             className="btn-action"
                             style={{
                               backgroundColor: s.estatus
-                                ? kairosTheme.white
-                                : kairosTheme.success,
-                              borderColor: s.estatus
-                                ? kairosTheme.secondary
-                                : kairosTheme.success,
-                              color: s.estatus
-                                ? kairosTheme.secondary
+                                ? kairosTheme.success
                                 : kairosTheme.white,
+                              borderColor: s.estatus
+                                ? kairosTheme.success
+                                : kairosTheme.secondary,
+                              color: s.estatus
+                                ? kairosTheme.white
+                                : kairosTheme.secondary,
                             }}
                             title={
                               s.estatus ? "Desactivar socio" : "Activar socio"
